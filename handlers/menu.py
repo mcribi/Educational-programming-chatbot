@@ -1,185 +1,188 @@
 from telegram import InlineKeyboardMarkup, InlineKeyboardButton
 import asyncio
 
+from data.topics import cpp_topics
+from data.theory_cpp import theory_cpp
+from handlers.theory import show_lesson_menu, show_lesson
+from handlers.exercises import start_practice, send_question
 
-#mis archivos
-from data.temas import temas_cpp
-from data.teoria_cpp import teoria_cpp
+GREETINGS = ["hola", "buenas", "hey", "holi", "hello", "saludos", "qué tal", "start"]
 
-saludos = ["hola", "buenas", "hey", "holi", "hello", "saludos", "qué tal", "start"]
-
+# Function to start the main menu
 async def start(update, context):
     buttons = [
-        [InlineKeyboardButton("Aprender", callback_data="aprender")],
-        [InlineKeyboardButton("Practicar", callback_data="practicar")]
+        [InlineKeyboardButton("Aprender", callback_data="learn")],
+        [InlineKeyboardButton("Practicar", callback_data="practice")]
     ]
     await update.message.reply_text(
         "¡Hola! ¿Qué quieres hacer?",
         reply_markup=InlineKeyboardMarkup(buttons)
     )
 
-
-async def manejar_texto(update, context):
-    texto = update.message.text.lower().strip()
-    if texto in saludos:
+# Function to handle text messages
+async def handle_text(update, context):
+    text = update.message.text.lower().strip()
+    if text in GREETINGS:
         await start(update, context)
     else:
         await update.message.reply_text("Usa los botones o /start para comenzar.")
 
-
-async def manejar_callback(update, context):
+# Function to handle callback queries
+async def handle_callback(update, context):
     query = update.callback_query
     await query.answer()
     data = query.data
 
-    if data == "aprender":
-        botones_temas = [
-            [InlineKeyboardButton(tema, callback_data=f"teoria_{i}")]
-            for i, tema in enumerate(temas_cpp)
+    if data == "learn":
+        buttons = [
+            [InlineKeyboardButton(topic, callback_data=f"theory_{i}")]
+            for i, topic in enumerate(cpp_topics)
         ]
-        botones_temas.append([InlineKeyboardButton("⬅ Volver", callback_data="volver_menu")])
+        buttons.append([InlineKeyboardButton("⬅ Volver", callback_data="main_menu")])
         await query.message.edit_text(
             "Elige un tema de C++ para aprender:",
-            reply_markup=InlineKeyboardMarkup(botones_temas)
+            reply_markup=InlineKeyboardMarkup(buttons)
         )
 
-    elif data == "practicar":
-        botones_temas = [
-            [InlineKeyboardButton(tema, callback_data=f"tema_{i}")]
-            for i, tema in enumerate(temas_cpp)
+    elif data == "practice":
+        buttons = [
+            [InlineKeyboardButton(topic, callback_data=f"topic_{i}")]
+            for i, topic in enumerate(cpp_topics)
         ]
-        botones_temas.append([InlineKeyboardButton("⬅ Volver", callback_data="volver_menu")])
+        buttons.append([InlineKeyboardButton("⬅ Volver", callback_data="main_menu")])
         await query.message.edit_text(
             "Elige un tema para practicar:",
-            reply_markup=InlineKeyboardMarkup(botones_temas)
+            reply_markup=InlineKeyboardMarkup(buttons)
         )
 
-    elif data == "volver_a_tipo":
-        tema = context.user_data.get("tema_actual")
-        if not tema:
-            await update.callback_query.message.reply_text("⚠️ No hay tema activo. Usa /start.")
+    elif data == "back_to_mode":
+        topic = context.user_data.get("current_topic")
+        if not topic:
+            await query.message.reply_text("⚠️ No hay tema activo. Usa /start.")
             return
 
-        botones_tipos = [
-            [InlineKeyboardButton("📝 Test", callback_data="tipo_test")],
-            [InlineKeyboardButton("💻 Programar", callback_data="tipo_programar")],
-            [InlineKeyboardButton("⬅ Volver al menú", callback_data="volver_menu")]
+        buttons = [
+            [InlineKeyboardButton("📝 Test", callback_data="mode_test")],
+            [InlineKeyboardButton("💻 Programar", callback_data="mode_code")],
+            [InlineKeyboardButton("⬅ Volver al menú", callback_data="main_menu")]
         ]
 
-        await update.callback_query.message.reply_text(
-            f"Has elegido <b>{tema}</b>.\n\n¿Qué tipo de ejercicio quieres hacer?",
-            reply_markup=InlineKeyboardMarkup(botones_tipos),
+        await query.message.reply_text(
+            f"Has elegido <b>{topic}</b>.\n\n¿Qué tipo de ejercicio quieres hacer?",
+            reply_markup=InlineKeyboardMarkup(buttons),
             parse_mode="HTML"
         )
 
-    elif data.startswith("teoria_"):
-        from handlers.teoria import mostrar_teoria
-        await mostrar_teoria(update, context)
+    elif data.startswith("theory_"):
+        index = int(data.split("_")[1])
+        topic = cpp_topics[index]
+        await show_lesson_menu(update, context, topic_key=topic)
 
-    elif data.startswith("tema_"):
-        i = int(data.split("_")[1])
-        tema = temas_cpp[i]
-        context.user_data["tema_seleccionado"] = tema
+    elif data.startswith("topic_"):
+        index = int(data.split("_")[1])
+        topic = cpp_topics[index]
+        context.user_data["selected_topic"] = topic
 
-        botones_tipos = [
-            [InlineKeyboardButton("📝 Test", callback_data="tipo_test")],
-            [InlineKeyboardButton("💻 Programar", callback_data="tipo_programar")],
-            [InlineKeyboardButton("⬅ Volver", callback_data="practicar")]
+        buttons = [
+            [InlineKeyboardButton("📝 Test", callback_data="mode_test")],
+            [InlineKeyboardButton("💻 Programar", callback_data="mode_code")],
+            [InlineKeyboardButton("⬅ Volver", callback_data="practice")]
         ]
         await query.message.edit_text(
-            f"Has elegido <b>{tema}</b>.\n\n¿Qué tipo de ejercicio quieres hacer:",
-            reply_markup=InlineKeyboardMarkup(botones_tipos),
+            f"Has elegido <b>{topic}</b>.\n\n¿Qué tipo de ejercicio quieres hacer:",
+            reply_markup=InlineKeyboardMarkup(buttons),
             parse_mode="HTML"
         )
 
-    elif data.startswith("tipo_"):
-        tipo = data.split("_")[1]
-        tema = context.user_data.get("tema_seleccionado")
+    elif data.startswith("mode_"):
+        mode = data.split("_")[1]
+        topic = context.user_data.get("selected_topic")
 
-        if not tema:
+        if not topic:
             await query.message.edit_text("⚠️ Ocurrió un error. Por favor, vuelve a /start.")
             return
 
-        context.user_data["tema_actual"] = tema
-        context.user_data["tipo_actual"] = tipo
-        context.user_data["indice_pregunta"] = 0
+        context.user_data["current_topic"] = topic
+        context.user_data["current_mode"] = mode
+        context.user_data["question_index"] = 0
 
-        from handlers.ejercicios import comenzar_practica
-        await comenzar_practica(update, context)
+        await start_practice(update, context)
 
     elif data.startswith("resp_"):
-        from handlers.ejercicios import enviar_pregunta
+        option_index = int(data[5:])
+        i = context.user_data["question_index"]
+        exercises = context.user_data["filtered_exercises"]
+        exercise = exercises[i]
+        options = context.user_data["current_options"]
+        selected = options[option_index]
 
-        opcion_index = int(data[5:])
-        i = context.user_data["indice_pregunta"]
-        ejercicios = context.user_data["ejercicios_filtrados"]
-        ejercicio = ejercicios[i]
-        opciones = context.user_data["opciones_actuales"]
-        opcion_seleccionada = opciones[opcion_index]
-        respuesta_correcta = ejercicio["respuesta"]
-
-        if opcion_seleccionada.lower() == respuesta_correcta.lower():
-            texto_resultado = f"<b>{ejercicio['pregunta']}</b>\n\n✅ ¡Correcto!"
+        if exercise.is_correct(selected):
+            response = f"<b>{exercise.question}</b>\n\n✅ ¡Correcto!"
         else:
-            texto_resultado = (
-                f"<b>{ejercicio['pregunta']}</b>\n\n"
+            response = (
+                f"<b>{exercise.question}</b>\n\n"
                 f"❌ <b>Incorrecto</b>\n\n"
-                f"<b>Explicación:</b> {ejercicio['explicacion']}"
+                f"<b>Explicación:</b> {exercise.explanation}"
             )
 
         await context.bot.send_message(
             chat_id=update.effective_chat.id,
-            text=texto_resultado,
+            text=response,
             parse_mode="HTML"
         )
 
-        context.user_data["indice_pregunta"] += 1
+        context.user_data["question_index"] += 1
 
-        if context.user_data["indice_pregunta"] < len(ejercicios):
+        if context.user_data["question_index"] < len(exercises):
             await asyncio.sleep(0.5)
-            await enviar_pregunta(update, context)
+            await send_question(update, context)
         else:
-            botones_finales = [
-                [InlineKeyboardButton("🔁 Practicar este tipo otra vez", callback_data="repetir_tipo")],
-                [InlineKeyboardButton("📚 Elegir otro tipo", callback_data="elegir_tipo")],
-                [InlineKeyboardButton("🏠 Menú principal", callback_data="volver_menu")]
+            buttons = [
+                [InlineKeyboardButton("🔁 Practicar este tipo otra vez", callback_data="repeat_mode")],
+                [InlineKeyboardButton("📚 Elegir otro tipo", callback_data="choose_mode")],
+                [InlineKeyboardButton("🏠 Menú principal", callback_data="main_menu")]
             ]
             await context.bot.send_message(
                 chat_id=update.effective_chat.id,
                 text="🏁 Has terminado los ejercicios de este tipo. ¿Qué te gustaría hacer ahora?",
-                reply_markup=InlineKeyboardMarkup(botones_finales)
+                reply_markup=InlineKeyboardMarkup(buttons)
             )
 
-    elif data == "repetir_tipo":
-        from handlers.ejercicios import comenzar_practica
-        await comenzar_practica(update, context)
+    elif data == "repeat_mode":
+        await start_practice(update, context)
 
-    elif data == "elegir_tipo":
-        tema = context.user_data.get("tema_actual")
-        if not tema:
+    elif data == "choose_mode":
+        topic = context.user_data.get("current_topic")
+        if not topic:
             await query.message.edit_text("Ocurrió un error. Usa /start para volver al menú.")
             return
 
-        botones_tipos = [
-            [InlineKeyboardButton("📝 Test", callback_data="tipo_test")],
-            [InlineKeyboardButton("💻 Programar", callback_data="tipo_programar")],
-            [InlineKeyboardButton("⬅ Volver al menú", callback_data="volver_menu")]
+        buttons = [
+            [InlineKeyboardButton("📝 Test", callback_data="mode_test")],
+            [InlineKeyboardButton("💻 Programar", callback_data="mode_code")],
+            [InlineKeyboardButton("⬅ Volver al menú", callback_data="main_menu")]
         ]
 
         await query.message.edit_text(
-            f"Has elegido <b>{tema}</b>.\n\n¿Qué tipo de ejercicio quieres hacer?",
-            reply_markup=InlineKeyboardMarkup(botones_tipos),
+            f"Has elegido <b>{topic}</b>.\n\n¿Qué tipo de ejercicio quieres hacer?",
+            reply_markup=InlineKeyboardMarkup(buttons),
             parse_mode="HTML"
         )
 
-    elif data == "volver_menu":
-        texto = "¿Qué quieres hacer?"
-        botones = [
-            [InlineKeyboardButton("Aprender", callback_data="aprender")],
-            [InlineKeyboardButton("Practicar", callback_data="practicar")]
+    elif data.startswith("lesson_"):
+        await show_lesson(update, context)
+
+    elif data.startswith("menu_topic_"):
+        topic_key = data.replace("menu_topic_", "")
+        await show_lesson_menu(update, context, topic_key)
+
+    elif data == "main_menu":
+        buttons = [
+            [InlineKeyboardButton("Aprender", callback_data="learn")],
+            [InlineKeyboardButton("Practicar", callback_data="practice")]
         ]
 
         if update.message:
-            await update.message.reply_text(texto, reply_markup=InlineKeyboardMarkup(botones))
+            await update.message.reply_text("¿Qué quieres hacer?", reply_markup=InlineKeyboardMarkup(buttons))
         else:
-            await update.callback_query.message.reply_text(texto, reply_markup=InlineKeyboardMarkup(botones))
+            await update.callback_query.message.reply_text("¿Qué quieres hacer?", reply_markup=InlineKeyboardMarkup(buttons))
