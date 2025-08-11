@@ -3,16 +3,16 @@ from src.lesson import Lesson
 lesson = Lesson(
     title="¿Qué es programar?",
     content=(
-        "<b>¿Qué es programar?</b>\n\n"
+        # "<b>¿Qué es programar?</b>\n\n"
         "Programar consiste en <i>dar instrucciones a un ordenador</i> para que realice tareas específicas. "
-        "Estas instrucciones se escriben en un <b>lenguaje de programación</b> como C++, que permite controlar el comportamiento de la máquina.\n\n"
+        "Estas instrucciones se escriben en un <b>lenguaje de programación</b> como por ejemplo C++, que permite controlar el comportamiento de la máquina.\n\n"
 
         "<b>¿Para qué sirve programar?</b>\n"
-        "Sirve para crear aplicaciones, videojuegos, controlar robots, analizar datos, ¡y mucho más!\n\n"
+        "Sirve para crear aplicaciones, videojuegos, controlar robots, analizar datos...\n\n"
 
         "<b>Conceptos básicos:</b>\n"
         "• <b>Algoritmo</b>: Conjunto de pasos ordenados para resolver un problema.\n"
-        "• <b>Lenguaje</b>: Herramienta que usamos para escribir esos pasos (como C++, Python, etc).\n"
+        "• <b>Lenguaje de programación</b>: Lenguaje formal utilizado para comunicarnos con un ordenador e imponerle la ejecución de un conjunto de órdenes. Ejemplos más utilizados actualmente: C++, Python, Java...\n"
         "• <b>Programa</b>: Archivo o conjunto de archivos que contienen las instrucciones que sigue el ordenador.\n\n"
 
         "<b>Definiciones importantes:</b>\n"

@@ -1,7 +1,7 @@
 from sqlalchemy import create_engine
 from sqlalchemy.orm import sessionmaker
 
-# sqlite database path
+# sqlite database path: creates or opens the bot.db file in the current directory
 DATABASE_URL = "sqlite:///bot.db"
 
 # create connection engine

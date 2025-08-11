@@ -17,8 +17,8 @@ GREETINGS = ["hola", "buenas", "hey", "holi", "hello", "saludos", "qué tal", "s
 # Function to show the main menu
 async def show_main_menu(update, context):
     buttons = [
-        [InlineKeyboardButton("Aprender", callback_data="learn")],
-        [InlineKeyboardButton("Practicar", callback_data="practice")]
+        [InlineKeyboardButton("📚 Aprender", callback_data="learn")],
+        [InlineKeyboardButton("📝 Practicar", callback_data="practice")]
     ]
     if update.message:
         await update.message.reply_text("¿Qué quieres hacer?", reply_markup=InlineKeyboardMarkup(buttons))
@@ -281,4 +281,12 @@ async def handle_callback(update, context):
                 )
             msg += "\n"
 
-        await query.message.reply_text(msg, parse_mode="HTML")
+        buttons = [
+            [InlineKeyboardButton("⬅ Volver", callback_data="practice")]
+        ]
+        await query.message.reply_text(
+            msg,
+            parse_mode="HTML",
+            reply_markup=InlineKeyboardMarkup(buttons)
+        )
+
