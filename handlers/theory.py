@@ -3,8 +3,9 @@ from telegram.ext import ContextTypes
 from data.topics import cpp_topics
 from data.theory_cpp import theory_cpp  # Dict[str, Topic] with list[Lesson]
 
+#function to show the lesson menu for a specific topic
 async def show_lesson_menu(update, context, topic_key=None):
-    query = update.callback_query
+    query = update.callback_query #save the click botton query
     await query.answer()
 
     if not topic_key:
@@ -14,11 +15,11 @@ async def show_lesson_menu(update, context, topic_key=None):
 
     lessons = theory_cpp[topic_key].lessons
 
-    buttons = [
+    buttons = [ #one button for each lesson
         [InlineKeyboardButton(lesson.title, callback_data=f"lesson_{topic_key}_{i}")]
         for i, lesson in enumerate(lessons)
     ]
-    buttons.append([InlineKeyboardButton("⬅ Volver al menú principal", callback_data="main_menu")])
+    buttons.append([InlineKeyboardButton("⬅ Volver al menú principal", callback_data="main_menu")]) #button for going back to the main menu
 
     await query.message.edit_text(
         f"📖 <b>{topic_key}</b>: elige una lección:",
@@ -26,11 +27,12 @@ async def show_lesson_menu(update, context, topic_key=None):
         parse_mode="HTML"
     )
 
-
+#function to show a specific lesson
 async def show_lesson(update, context):
     query = update.callback_query
     await query.answer()
 
+    #extract the topic key and lesson index from callback data
     _, topic_key, idx = query.data.split("_", 2)
     idx = int(idx)
 
@@ -53,7 +55,7 @@ async def show_lesson(update, context):
         parse_mode="HTML"
     )
 
-
+#function to show the theory for a specific topic
 async def show_theory(update, context: ContextTypes.DEFAULT_TYPE):
     query = update.callback_query
     await query.answer()

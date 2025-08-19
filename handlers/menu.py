@@ -12,7 +12,7 @@ from sqlalchemy import func, Integer
 from db.models.exercise import Exercise
 
 
-GREETINGS = ["hola", "buenas", "hey", "holi", "hello", "saludos", "qué tal", "start"]
+GREETINGS = ["hola", "ola", "buenas", "hey", "holi", "hello", "saludos", "qué tal", "start"]
 
 # Function to show the main menu
 async def show_main_menu(update, context):

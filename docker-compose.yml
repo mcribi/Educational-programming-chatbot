@@ -1,0 +1,16 @@
+services:
+  db:
+    image: postgres:16
+    container_name: bot_pg
+    environment:
+      POSTGRES_USER: botuser
+      POSTGRES_PASSWORD: botpass
+      POSTGRES_DB: botdb
+    ports:
+      - "5432:5432"
+    volumes:
+      - pgdata:/var/lib/postgresql/data
+    command: ["postgres", "-c", "shared_buffers=256MB", "-c", "max_connections=100"]
+volumes:
+  pgdata:
+

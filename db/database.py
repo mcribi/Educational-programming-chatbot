@@ -1,22 +1,23 @@
+import os
+from dotenv import load_dotenv
 from sqlalchemy import create_engine
 from sqlalchemy.orm import sessionmaker
 
-# sqlite database path: creates or opens the bot.db file in the current directory
-DATABASE_URL = "sqlite:///bot.db"
+load_dotenv()  # read .env in the root of the project
 
-# create connection engine
-engine = create_engine(
-    DATABASE_URL,
-    connect_args={"check_same_thread": False} #with threads
+# URL of .env 
+DATABASE_URL = os.getenv(
+    "DATABASE_URL",
+    "postgresql+psycopg://botuser:botpass@localhost:5432/botdb"
 )
 
-# create session
-SessionLocal = sessionmaker(autocommit=False, autoflush=False, bind=engine)
+engine = create_engine(
+    DATABASE_URL,
+    pool_pre_ping=True,
+    future=True,       
+)
 
-# Helper function to use sessions with "with"
+SessionLocal = sessionmaker(bind=engine, autoflush=False, autocommit=False)
+
 def get_session():
-    db = SessionLocal()
-    try:
-        yield db
-    finally:
-        db.close()
+    return SessionLocal()
