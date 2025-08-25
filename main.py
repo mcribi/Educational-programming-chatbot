@@ -65,7 +65,7 @@ if __name__ == "__main__":
     listener = QueueListener(q, db_handler, respect_handler_level=True)
     listener.start()
 
-    # Route Python warnings into logging (optional)
+    # Route Python warnings into logging
     logging.captureWarnings(True)
 
     # ---------- Initial data population (after logging is ready) ----------
