@@ -63,6 +63,7 @@ services:
       - .env
     environment:
       DATABASE_URL: postgresql://botuser:botpass@db:5432/botdb
+      - RUNNER_URL=http://runner:8080
       # Point to the Judge0 service within the compose
       JUDGE0_URL: http://judge0:2358
       # Default limit that your bot will impose

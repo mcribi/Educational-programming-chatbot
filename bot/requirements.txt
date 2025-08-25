@@ -3,3 +3,4 @@ SQLAlchemy==2.0.23          # ORM
 alembic==1.13.1             #database migrations
 python-dotenv==1.0.1        # read enviroment variables (.env)
 psycopg2-binary==2.9.9
+httpx==0.25.2
