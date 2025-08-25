@@ -10,6 +10,7 @@ from db.database import SessionLocal
 from db.models.attempt import Attempt
 from sqlalchemy import func, Integer
 from db.models.exercise import Exercise
+from db.models.topic import Topic
 
 
 GREETINGS = ["hola", "ola", "buenas", "hey", "holi", "hello", "saludos", "qué tal", "start"]
@@ -244,27 +245,27 @@ async def handle_callback(update, context):
             return
 
         # Fetch statistics from the database
-        stats = {}
         with SessionLocal() as session:
             rows = session.query(
-                Exercise.topic,
-                Exercise.type,
-                func.count().label("total"),
-                func.sum(func.cast(Attempt.is_correct, Integer)).label("aciertos")
-            ).join(Attempt, Attempt.exercise_id == Exercise.id)\
-            .filter(Attempt.user_id == user_id)\
-            .group_by(Exercise.topic, Exercise.type)\
-            .all()
+            Topic.name.label("topic"),
+            Exercise.type,
+            func.count().label("total"),
+            func.sum(func.cast(Attempt.is_correct, Integer)).label("aciertos")
+        ).join(Exercise, Attempt.exercise_id == Exercise.id
+        ).join(Topic, Topic.id == Exercise.topic_id
+        ).filter(Attempt.user_id == user_id
+        ).group_by(Topic.name, Exercise.type
+        ).all()
 
-            for topic, tipo, total, aciertos in rows:
-                ratio = (aciertos or 0) / total if total > 0 else 0
-                if topic not in stats:
-                    stats[topic] = {}
-                stats[topic][tipo] = {
-                    "aciertos": aciertos or 0,
-                    "fallos": total - (aciertos or 0),
-                    "ratio": round(ratio * 100)
-                }
+        stats = {}
+        for topic_name, tipo, total, aciertos in rows:
+            ratio = (aciertos or 0) / total if total > 0 else 0
+            stats.setdefault(topic_name, {})
+            stats[topic_name][tipo] = {
+                "aciertos": aciertos or 0,
+                "fallos": total - (aciertos or 0),
+                "ratio": round(ratio * 100),
+            }
 
         if not stats:
             await query.message.reply_text("⚠️ Aún no hay estadísticas registradas.")

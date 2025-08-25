@@ -10,6 +10,8 @@ from data.theory_loader import load_theory
 from scripts.init_lessons import populate_lessons_from_loader
 import db.models
 from utils.db_logging import SQLAlchemyLogHandler
+from db.base import Base
+from db.database import engine, get_session
 
 
 # ---------- Global error handler for python-telegram-bot ----------
@@ -35,13 +37,22 @@ async def error_handler(update: object, context: ContextTypes.DEFAULT_TYPE):
 
 # ---------- Route plain text either to 'answer exercise' or 'chat' ----------
 async def route_text_or_answer(update, context):
+    # If user is in a practice session, dispatch by mode
     if "current_topic" in context.user_data:
-        await handle_response(update, context)
+        if context.user_data.get("current_mode") == "code":
+            # User is supposed to paste C++ code here
+            await handle_code_submission(update, context)
+        else:
+            # Default to test mode response handler
+            await handle_response(update, context)
     else:
         await handle_text(update, context)
 
 
 if __name__ == "__main__":
+    
+    Base.metadata.create_all(bind=engine)
+
     # ---------- Logging: queue -> background listener -> DB handler ----------
     q = queue.SimpleQueue()
 

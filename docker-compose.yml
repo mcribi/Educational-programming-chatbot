@@ -14,7 +14,7 @@ services:
     volumes:
       - postgres_data:/var/lib/postgresql/data
 
-  # Redis and workers for Judge0 in queue mode
+  # Redis for Judge0 in queue mode
   redis:
     image: redis:7
     container_name: judge0_redis
@@ -27,13 +27,13 @@ services:
     environment:
       JUDGE0_USE_WORKERS: "true"
       JUDGE0_WORKERS: "2"
-      # Limit default stdout/stderr size and memory
       DEFAULT_MAX_STDOUT_SIZE: "32768"      # 32 KB
       DEFAULT_MAX_STDERR_SIZE: "16384"      # 16 KB
       DEFAULT_MEMORY_LIMIT: "67108864"      # 64 MB
       DEFAULT_TIME_LIMIT: "1.5"             # 1.5 s CPU
       DEFAULT_WALL_TIME_LIMIT: "3"          # 3 s clock
-      DEFAULT_MAX_PROCESSES_AND_OR_THREADS: "0"  # Do not create processes/threads
+      DEFAULT_MAX_PROCESSES_AND_OR_THREADS: "0"
+      REDIS_HOST: "redis"
     ports:
       - "2358:2358"
     depends_on:
@@ -53,20 +53,20 @@ services:
       - redis
 
   bot:
-    build: ./bot
+    build: .
     container_name: chatbot
     restart: always
     depends_on:
       - db
       - judge0
+      - judge0_workers
     env_file:
       - .env
     environment:
       DATABASE_URL: postgresql://botuser:botpass@db:5432/botdb
-      - RUNNER_URL=http://runner:8080
-      # Point to the Judge0 service within the compose
+      # Internal URL of the Judge0 service within the Compose network
       JUDGE0_URL: http://judge0:2358
-      # Default limit that your bot will impose
+      #Default limits imposed by the bot
       RUN_TIME_LIMIT_SEC: "1.5"
       RUN_WALL_TIME_LIMIT_SEC: "3"
       RUN_MEMORY_LIMIT_MB: "64"
@@ -74,3 +74,4 @@ services:
 
 volumes:
   postgres_data:
+
