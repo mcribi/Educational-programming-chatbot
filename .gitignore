@@ -1,0 +1,10 @@
+.env 
+*.pem
+__pycache__/
+*.pyc
+alembic/versions/*.pyc
+postgres_data/
+*.log
+.vscode/
+.idea/
+*.zip
