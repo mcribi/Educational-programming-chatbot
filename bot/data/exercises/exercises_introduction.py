@@ -239,6 +239,45 @@ exercises_introduction = [
         options=["8", "35", "Error", "3 5"],
         answer="35",
         explanation="Se imprimen los números 3 y 5 uno tras otro, sin espacio entre ellos."
-    )
+    ),
+
+    #exercises of code
+    # Exercise(
+    #     type_="code",
+    #     question="Escribe un programa en C++ que imprima exactamente el texto:\nHola Mundo",
+    #     stdin="",
+    #     expected_stdout="Hola Mundo\n",
+    #     explanation="El primer programa clásico: usar cout para mostrar un mensaje fijo."
+    # ),
+    # Exercise(
+    #     type_="code",
+    #     question="Lee dos enteros desde la entrada estándar y muestra su suma.",
+    #     stdin="3 7\n",
+    #     expected_stdout="10\n",
+    #     explanation="El programa debe leer dos números y sumarlos con el operador '+'."
+    # ),
+    # Exercise(
+    #     type_="code",
+    #     question="Lee la base y la altura de un rectángulo e imprime su área (base * altura).",
+    #     stdin="5 4\n",
+    #     expected_stdout="20\n",
+    #     explanation="Multiplica base por altura y muestra el resultado."
+    # ),
+    # Exercise(
+    #     type_="code",
+    #     question="Lee un número entero y muestra 'PAR' si es par o 'IMPAR' si es impar.",
+    #     stdin="9\n",
+    #     expected_stdout="IMPAR\n",
+    #     explanation="Usa el operador módulo (% 2) para comprobar el resto."
+    # ),
+    # Exercise(
+    #     type_="code",
+    #     question="Lee un número entero de minutos y conviértelo a horas y minutos.\nPor ejemplo, si la entrada es 130, la salida debe ser '2 10'.",
+    #     stdin="130\n",
+    #     expected_stdout="2 10\n",
+    #     explanation="Divide entre 60 para obtener horas y usa el resto para los minutos."
+    # ),
+
+
     
 ]
