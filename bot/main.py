@@ -12,6 +12,7 @@ import db.models
 from utils.db_logging import SQLAlchemyLogHandler
 from db.base import Base
 from db.database import engine, get_session
+from handlers.code import (handle_code_message, cmd_run, cmd_submit, cmd_solution, cmd_hint)
 
 
 # ---------- Global error handler for python-telegram-bot ----------
@@ -36,14 +37,17 @@ async def error_handler(update: object, context: ContextTypes.DEFAULT_TYPE):
 
 
 # ---------- Route plain text either to 'answer exercise' or 'chat' ----------
-async def route_text_or_answer(update, context):
-    # If user is in a practice session, dispatch by mode
+async def route_text_or_answer(update: Update, context: ContextTypes.DEFAULT_TYPE):
+    """
+    Route plain text:
+    - If practicing and mode == 'code' -> try to capture code (handle_code_message).
+    - If practicing and mode != 'code' -> multiple-choice flow (handle_response).
+    - Else -> generic chat/menu text (handle_text).
+    """
     if "current_topic" in context.user_data:
         if context.user_data.get("current_mode") == "code":
-            # User is supposed to paste C++ code here
-            await handle_code_submission(update, context)
+            await handle_code_message(update, context)
         else:
-            # Default to test mode response handler
             await handle_response(update, context)
     else:
         await handle_text(update, context)
@@ -93,6 +97,14 @@ if __name__ == "__main__":
 
     app.add_handler(CommandHandler("start", start))
     app.add_handler(CallbackQueryHandler(handle_callback))
+    
+    #code-mode commands
+    app.add_handler(CommandHandler("run", cmd_run))
+    app.add_handler(CommandHandler("submit", cmd_submit))
+    app.add_handler(CommandHandler("solution", cmd_solution))
+    app.add_handler(CommandHandler("hint", cmd_hint))
+
+    # Text router
     app.add_handler(MessageHandler(filters.TEXT & ~filters.COMMAND, route_text_or_answer))
 
     # Hook the global error handler

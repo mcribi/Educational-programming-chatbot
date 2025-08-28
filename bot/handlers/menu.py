@@ -12,9 +12,90 @@ from sqlalchemy import func, Integer
 from db.models.exercise import Exercise
 from db.models.topic import Topic
 
-
 GREETINGS = ["hola", "ola", "buenas", "hey", "holi", "hello", "saludos", "qué tal", "start"]
 
+# ---- Helpers for code-mode ---------------------------------------------------
+def _pick_next_code_exercise(session, user_id: int, topic_name: str):
+    """
+    Pick next 'code' exercise for the given topic.
+    Preference order:
+      1) exercises never solved (no Attempt with is_correct = True)
+      2) else any 'code' exercise in topic (ordered by id)
+    Returns Exercise row or None.
+    """
+    topic = session.query(Topic).filter(Topic.name == topic_name).one_or_none()
+    if not topic:
+        return None
+
+    # All code exercises in this topic
+    exercises = (
+        session.query(Exercise)
+        .filter(Exercise.topic_id == topic.id, Exercise.type == "code")
+        .order_by(Exercise.id.asc())
+        .all()
+    )
+    if not exercises:
+        return None
+
+    # Prefer exercises without a correct attempt
+    for ex in exercises:
+        # Is there a correct attempt for this user+exercise?
+        ok = (
+            session.query(Attempt)
+            .filter(Attempt.user_id == user_id, Attempt.exercise_id == ex.id, Attempt.is_correct.is_(True))
+            .first()
+        )
+        if not ok:
+            return ex
+
+    # If all were solved, just return the first one (user can practice again)
+    return exercises[0]
+
+async def _send_code_prompt(query_or_update, context, ex: Exercise):
+    """
+    Send a concise prompt for the selected code exercise:
+    - title/question
+    - sample input/output (first sample)
+    - limits + instructions (/run, /submit, /hint, /solution)
+    """
+    # Extract first sample to show
+    sample_io = ""
+    if ex.tests_json and isinstance(ex.tests_json, dict):
+        samples = (ex.tests_json or {}).get("sample", []) or []
+        if samples:
+            s = samples[0]
+            inp = (s.get("input") or "").strip()
+            out = (s.get("output") or "").strip()
+            sample_io = (
+                "\n*Ejemplo (sample)*\n"
+                f"*Entrada:*\n```\n{inp}\n```\n"
+                f"*Salida esperada:*\n```\n{out}\n```"
+            )
+
+    limits = []
+    if ex.time_limit_ms:
+        limits.append(f"{ex.time_limit_ms} ms")
+    if ex.memory_limit_mb:
+        limits.append(f"{ex.memory_limit_mb} MB")
+    limits_str = " · ".join(limits) if limits else "1.5 s · 128 MB"
+
+    text = (
+        f"💻 *Ejercicio de programación*\n\n"
+        f"*Enunciado:* {ex.question}\n"
+        f"{sample_io}\n\n"
+        f"*Límites:* {limits_str}\n\n"
+        "Envía tu solución en un bloque ```cpp ... ```\n"
+        "y usa /run (ejemplos) o /submit (tests completos).\n"
+        "Opcional: /hint y /solution."
+    )
+
+    # Output via callback or message
+    if hasattr(query_or_update, "message") and query_or_update.message:
+        await query_or_update.message.edit_text(text, parse_mode="Markdown")
+    else:
+        await query_or_update.callback_query.message.edit_text(text, parse_mode="Markdown")
+
+# ------------------------------------------------------------------------------
 # Function to show the main menu
 async def show_main_menu(update, context):
     buttons = [
@@ -50,7 +131,6 @@ async def start(update, context):
             await update.message.reply_text(
                 "👋 ¡Hola! Parece que es tu primera vez usando el bot.\n\nPor favor, dime tu nombre para poder dirigirme a ti:"
             )
-
 
 # Function to handle text messages
 async def handle_text(update, context):
@@ -93,7 +173,6 @@ async def handle_callback(update, context):
             [InlineKeyboardButton(topic, callback_data=f"theory_{i}")]
             for i, topic in enumerate(cpp_topics)
         ]
-        #buttons.append([InlineKeyboardButton("📊 Ver estadísticas", callback_data="view_stats")])
         buttons.append([InlineKeyboardButton("⬅ Volver", callback_data="main_menu")])
     
         await query.message.edit_text(
@@ -160,11 +239,31 @@ async def handle_callback(update, context):
             await query.message.edit_text("⚠️ Ocurrió un error. Por favor, vuelve a /start.")
             return
 
+        # Store current topic & mode for the session
         context.user_data["current_topic"] = topic
         context.user_data["current_mode"] = mode
 
-        await start_practice(update, context)
+        if mode == "code":
+            # --- NEW: pick and present a code exercise now ---
+            user_id = context.user_data.get("user_id")
+            if not user_id:
+                await query.message.edit_text("⚠️ Debes registrarte primero con /start.")
+                return
 
+            with SessionLocal() as session:
+                ex = _pick_next_code_exercise(session, user_id, topic)
+                if not ex:
+                    await query.message.edit_text("⚠️ No hay ejercicios de programación en este tema (aún).")
+                    return
+                # Keep state for code-mode handlers
+                context.user_data["current_exercise_id"] = ex.id
+                context.user_data["awaiting_code"] = True
+                context.user_data.pop("last_code", None)
+
+            await _send_code_prompt(update, context, ex)
+        else:
+            # Default -> multiple-choice practice flow
+            await start_practice(update, context)
 
     elif data.startswith("resp_"):
         option_index = int(data[5:])
@@ -183,7 +282,7 @@ async def handle_callback(update, context):
 
         user_id = context.user_data.get("user_id")
 
-        #save attempt
+        # save attempt (multiple-choice)
         from db.models.exercise import Exercise as ExerciseModel
         with SessionLocal() as session:
             db_ex = session.query(ExerciseModel).filter_by(question=exercise.question).first()
@@ -201,13 +300,29 @@ async def handle_callback(update, context):
             parse_mode="HTML"
         )
 
-        #continue in an infinite loop 
+        # continue with next question
         await asyncio.sleep(0.5)
         await send_question(update, context)
 
-
     elif data == "repeat_mode":
-        await start_practice(update, context)
+        # When user wants more practice in the same mode
+        if context.user_data.get("current_mode") == "code":
+            topic = context.user_data.get("current_topic")
+            user_id = context.user_data.get("user_id")
+            if not topic or not user_id:
+                await query.message.reply_text("⚠️ Ocurrió un error. Usa /start.")
+                return
+            with SessionLocal() as session:
+                ex = _pick_next_code_exercise(session, user_id, topic)
+                if not ex:
+                    await query.message.reply_text("⚠️ No hay más ejercicios de programación en este tema.")
+                    return
+                context.user_data["current_exercise_id"] = ex.id
+                context.user_data["awaiting_code"] = True
+                context.user_data.pop("last_code", None)
+            await _send_code_prompt(update, context, ex)
+        else:
+            await start_practice(update, context)
 
     elif data == "choose_mode":
         topic = context.user_data.get("current_topic")
@@ -237,7 +352,7 @@ async def handle_callback(update, context):
     elif data == "main_menu":
         await show_main_menu(update, context)
 
-    #for viewing statistics
+    # View statistics
     elif data == "view_stats":
         user_id = context.user_data.get("user_id")
         if not user_id:
@@ -247,15 +362,15 @@ async def handle_callback(update, context):
         # Fetch statistics from the database
         with SessionLocal() as session:
             rows = session.query(
-            Topic.name.label("topic"),
-            Exercise.type,
-            func.count().label("total"),
-            func.sum(func.cast(Attempt.is_correct, Integer)).label("aciertos")
-        ).join(Exercise, Attempt.exercise_id == Exercise.id
-        ).join(Topic, Topic.id == Exercise.topic_id
-        ).filter(Attempt.user_id == user_id
-        ).group_by(Topic.name, Exercise.type
-        ).all()
+                Topic.name.label("topic"),
+                Exercise.type,
+                func.count().label("total"),
+                func.sum(func.cast(Attempt.is_correct, Integer)).label("aciertos")
+            ).join(Exercise, Attempt.exercise_id == Exercise.id
+            ).join(Topic, Topic.id == Exercise.topic_id
+            ).filter(Attempt.user_id == user_id
+            ).group_by(Topic.name, Exercise.type
+            ).all()
 
         stats = {}
         for topic_name, tipo, total, aciertos in rows:
@@ -290,4 +405,3 @@ async def handle_callback(update, context):
             parse_mode="HTML",
             reply_markup=InlineKeyboardMarkup(buttons)
         )
-

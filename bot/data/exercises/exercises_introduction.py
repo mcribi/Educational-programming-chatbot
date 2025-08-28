@@ -277,6 +277,42 @@ exercises_introduction = [
     #     expected_stdout="2 10\n",
     #     explanation="Divide entre 60 para obtener horas y usa el resto para los minutos."
     # ),
+    Exercise(
+        type_="code",
+        question="Imprime exactamente: Hola Mundo",
+        tests_json={
+            "sample": [{"input": "", "output": "Hola Mundo\n"}],
+            "hidden": []
+        },
+        hint="Recuerda el salto de línea final.",
+        solution_code=(
+            '#include <bits/stdc++.h>\nusing namespace std;\n'
+            'int main(){ cout<<"Hola Mundo\\n"; }\n'
+        ),
+        checker="exact",
+        time_limit_ms=1000,
+        memory_limit_mb=64,
+    ),
+    Exercise(
+        type_="code",
+        question="Lee dos enteros y muestra su suma.",
+        tests_json={
+            "sample": [{"input":"3 7\n","output":"10\n"}],
+            "hidden": [
+                {"input":"1 2\n","output":"3\n"},
+                {"input":"-5 8\n","output":"3\n"}
+            ]
+        },
+        hint="Usa tipos enteros y termina con \\n.",
+        solution_code=(
+            '#include <bits/stdc++.h>\nusing namespace std;\n'
+            'int main(){ ios::sync_with_stdio(false); cin.tie(nullptr);\n'
+            'long long a,b; if(!(cin>>a>>b)) return 0; cout<<a+b<<\"\\n\"; }\n'
+        ),
+        checker="normalized",
+        time_limit_ms=1500,
+        memory_limit_mb=128,
+    ),
 
 
     

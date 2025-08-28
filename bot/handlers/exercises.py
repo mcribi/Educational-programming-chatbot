@@ -5,7 +5,6 @@ from src.exercise_generator import ExerciseGenerator
 from db.database import SessionLocal
 from db.models.attempt import Attempt
 from db.models.exercise import Exercise as ExerciseModel
-from utils.runner_client import run_cpp, RunnerError  
 
 import random
 

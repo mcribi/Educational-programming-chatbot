@@ -1,13 +1,5 @@
-FROM debian:stable-slim
+# Sandbox image used to COMPILE and RUN C++
+FROM gcc:13-bookworm
 
-# no extra tools, only for execute and bash
-RUN apt-get update && apt-get install -y --no-install-recommends \
-    bash ca-certificates \
-    && rm -rf /var/lib/apt/lists/*
-
-# user without privileges
-RUN useradd -m -s /bin/false sandbox
-USER sandbox
-WORKDIR /home/sandbox
-
-#Everything is assembled at runtime; we keep the base FS clean.
+#Working directory where the runner will assemble the code
+WORKDIR /work

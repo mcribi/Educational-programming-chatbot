@@ -1,4 +1,4 @@
-version: '3.8'
+name: chatbot
 
 services:
   db:
@@ -13,12 +13,15 @@ services:
       - "5432:5432"
     volumes:
       - postgres_data:/var/lib/postgresql/data
+    networks:
+      - appnet
 
-  # Redis for Judge0 in queue mode
   redis:
     image: redis:7
     container_name: judge0_redis
     restart: always
+    networks:
+      - appnet
 
   judge0:
     image: judge0/judge0:latest
@@ -27,17 +30,19 @@ services:
     environment:
       JUDGE0_USE_WORKERS: "true"
       JUDGE0_WORKERS: "2"
-      DEFAULT_MAX_STDOUT_SIZE: "32768"      # 32 KB
-      DEFAULT_MAX_STDERR_SIZE: "16384"      # 16 KB
-      DEFAULT_MEMORY_LIMIT: "67108864"      # 64 MB
-      DEFAULT_TIME_LIMIT: "1.5"             # 1.5 s CPU
-      DEFAULT_WALL_TIME_LIMIT: "3"          # 3 s clock
+      DEFAULT_MAX_STDOUT_SIZE: "32768"
+      DEFAULT_MAX_STDERR_SIZE: "16384"
+      DEFAULT_MEMORY_LIMIT: "67108864"
+      DEFAULT_TIME_LIMIT: "1.5"
+      DEFAULT_WALL_TIME_LIMIT: "3"
       DEFAULT_MAX_PROCESSES_AND_OR_THREADS: "0"
       REDIS_HOST: "redis"
     ports:
       - "2358:2358"
     depends_on:
       - redis
+    networks:
+      - appnet
 
   judge0_workers:
     image: judge0/judge0:latest
@@ -51,6 +56,28 @@ services:
     depends_on:
       - judge0
       - redis
+    networks:
+      - appnet
+
+  runner:
+    build: ./runner
+    container_name: runner
+    command: uvicorn app:api --host 0.0.0.0 --port 8000
+    # to run sandbox
+    volumes:
+      - /var/run/docker.sock:/var/run/docker.sock
+      - /tmp:/tmp                # share /tmp host and runner
+    environment:
+      PYTHONUNBUFFERED: "1"
+      COMPILE_TIMEOUT: "25"
+      COMPILE_CPUS: "1.0"
+      COMPILE_MEMORY: "256m"
+      RUN_CPUS: "0.5"
+      RUN_MEMORY: "128m"
+    ports:
+      - "8000:8000"              
+    networks:
+      - appnet
 
   bot:
     build: .
@@ -58,20 +85,25 @@ services:
     restart: always
     depends_on:
       - db
+      - runner
       - judge0
       - judge0_workers
     env_file:
       - .env
     environment:
       DATABASE_URL: postgresql://botuser:botpass@db:5432/botdb
-      # Internal URL of the Judge0 service within the Compose network
       JUDGE0_URL: http://judge0:2358
-      #Default limits imposed by the bot
       RUN_TIME_LIMIT_SEC: "1.5"
       RUN_WALL_TIME_LIMIT_SEC: "3"
       RUN_MEMORY_LIMIT_MB: "64"
       RUN_OUTPUT_LIMIT_B: "32768"
+      RUNNER_URL: "http://runner:8000"   
+    networks:
+      - appnet
 
 volumes:
   postgres_data:
 
+networks:
+  appnet:
+    name: chatbot_net
