@@ -12,7 +12,7 @@ import db.models
 from utils.db_logging import SQLAlchemyLogHandler
 from db.base import Base
 from db.database import engine, get_session
-from handlers.code import (handle_code_message, cmd_run, cmd_submit, cmd_solution, cmd_hint)
+from handlers.code import (handle_code_message, cmd_run, cmd_submit, cmd_solution, cmd_hint, cmd_out, cmd_code_help)
 
 
 # ---------- Global error handler for python-telegram-bot ----------
@@ -103,6 +103,9 @@ if __name__ == "__main__":
     app.add_handler(CommandHandler("submit", cmd_submit))
     app.add_handler(CommandHandler("solution", cmd_solution))
     app.add_handler(CommandHandler("hint", cmd_hint))
+    app.add_handler(CommandHandler("out", cmd_out))
+    app.add_handler(CommandHandler("codehelp", cmd_code_help))
+
 
     # Text router
     app.add_handler(MessageHandler(filters.TEXT & ~filters.COMMAND, route_text_or_answer))

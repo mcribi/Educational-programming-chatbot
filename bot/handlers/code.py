@@ -24,6 +24,10 @@ from db.models.exercise import Exercise as ExerciseModel
 from db.models.topic import Topic  # potentially useful if you route by topic
 from db.models.user import User
 from utils.runner_client import run_tests
+from utils.runner_client import run_cpp, RunnerError
+from telegram import InlineKeyboardMarkup, InlineKeyboardButton
+
+
 
 # Try to import Attempt model; if not present, we'll no-op on save_attempt
 try:
@@ -115,6 +119,17 @@ def get_or_create_user_by_telegram(session, telegram_id: int, name: Optional[str
     session.refresh(u)
     return u
 
+def code_actions_keyboard() -> InlineKeyboardMarkup:
+    """Inline keyboard shown after code results in code-mode."""
+    return InlineKeyboardMarkup([
+        [InlineKeyboardButton("ℹ️ Ayuda", callback_data="code_help")],
+        [
+            InlineKeyboardButton("🔁 Siguiente enunciado", callback_data="repeat_mode"),
+            InlineKeyboardButton("⬅ Volver al menú de práctica", callback_data="back_to_mode"),
+        ],
+    ])
+
+
 def save_attempt(
     *,
     telegram_id: int,
@@ -181,7 +196,7 @@ async def show_programming_intro(update: Update, context: ContextTypes.DEFAULT_T
         "    cout << \"Hola\" << '\\n';\n"
         "}\n"
         "```\n"
-        "¡Cuando quieras!"
+        + code_help_text(short=True) #adding cheatsheet
     )
     if update.callback_query:
         await update.callback_query.message.edit_text(text, parse_mode="Markdown")
@@ -208,8 +223,16 @@ async def handle_code_message(update: Update, context: ContextTypes.DEFAULT_TYPE
         return
 
     context.user_data[CODE_KEY] = code
-    await update.message.reply_text("📝 Código recibido. Usa /run (ejemplos) o /submit (tests completos).")
-
+    await update.message.reply_text(
+        "📝 Código recibido.\n\n"
+        "• /out — compila y ejecuta *tu último código* y muestra **la salida tal cual**.\n"
+        "• /run — ejecuta los *ejemplos* del ejercicio (feedback rápido).\n"
+        "• /submit — ejecuta *todos* los tests y evalúa.\n"
+        "• /hint — una pista (si hay).\n"
+        "• /solution — solución oficial.",
+        parse_mode="Markdown"
+    )
+    
 # /run: run only sample tests
 async def cmd_run(update: Update, context: ContextTypes.DEFAULT_TYPE):
     """Run sample tests only (quick feedback)."""
@@ -396,6 +419,82 @@ async def cmd_hint(update: Update, context: ContextTypes.DEFAULT_TYPE):
         return
     await update.message.reply_text(f"💡 Pista: {ex.hint}")
 
+async def cmd_out(update, context):
+    """Compile & run the last user code and print raw output (no tests)."""
+    code = context.user_data.get(CODE_KEY)
+    if not code:
+        await update.message.reply_text(
+            "Primero envíame tu código (puedes usar un bloque ```cpp ... ```).",
+            parse_mode="Markdown"
+        )
+        return
+
+    try:
+        res = await run_cpp(code)
+    except RunnerError as e:
+        await update.message.reply_text(f"❌ Runner no disponible: {e}")
+        return
+    except Exception as e:
+        await update.message.reply_text(f"❌ Error inesperado: {e}")
+        return
+
+    kb = code_actions_keyboard()
+
+    if not res.get("ok"):
+        # Show compiler/runtime error with actions
+        stderr = (res.get("stderr") or "").strip() or "(sin detalle)"
+        msg = (
+            f"❌ Resultado de /out\n"
+            f"```\n{stderr[:3500]}\n```\n"
+            "Acciones rápidas: /run · /submit · /hint · /solution"
+        )
+        await update.message.reply_text(msg, parse_mode="Markdown", reply_markup=kb)
+        return
+
+    # OK: print raw stdout (+stderr if any), and show actions
+    stdout = (res.get("stdout") or "").rstrip("\n")
+    stderr = (res.get("stderr") or "").rstrip("\n")
+
+    text = "✅ Resultado de /out\n"
+    if stdout:
+        text += f"```\n{stdout[:3500]}\n```"
+    else:
+        text += "_(sin salida por STDOUT)_"
+
+    if stderr:
+        text += f"\n\n_STDERR:_\n```\n{stderr[:1500]}\n```"
+
+    text += "\n\nAcciones rápidas: /run · /submit · /hint · /solution"
+
+    await update.message.reply_text(text, parse_mode="Markdown", reply_markup=kb)
+
+# Cheatsheet for code mode commands (long and short variants)
+def code_help_text(short: bool = False) -> str:
+    if short:
+        return (
+            "ℹ️ *Comandos (Programar)*\n"
+            "• /out — ejecuta tu último código y muestra la salida.\n"
+            "• /run — ejecuta solo los ejemplos.\n"
+            "• /submit — ejecuta todos los tests y evalúa.\n"
+            "• /hint — una pista (si hay).\n"
+            "• /solution — solución oficial."
+        )
+    # long version
+    return (
+        "🧭 *Comandos del modo Programar*\n"
+        "• /out — Compila y ejecuta tu *último* código y muestra **la salida tal cual**.\n"
+        "• /run — Ejecuta **solo** los *casos de ejemplo* del ejercicio (feedback rápido).\n"
+        "• /submit — Ejecuta *todos* los tests (ejemplos + ocultos) y decide si está *Aceptado*.\n"
+        "• /hint — Muestra *una sola* pista (si existe).\n"
+        "• /solution — Muestra la solución oficial (marca el intento como *SOLUTION*).\n"
+    )
+
+async def cmd_code_help(update, context):
+    """Show detailed help for code mode commands."""
+    await update.message.reply_text(code_help_text(short=False), parse_mode="Markdown")
+
+
+
 # -----------------------------------------------------------------------------
 # Registration helper (optional if you register in main.py)
 # -----------------------------------------------------------------------------
@@ -405,5 +504,8 @@ def register_handlers(app):
     app.add_handler(CommandHandler("submit", cmd_submit))
     app.add_handler(CommandHandler("solution", cmd_solution))
     app.add_handler(CommandHandler("hint", cmd_hint))
+    app.add_handler(CommandHandler("out", cmd_out))
+    app.add_handler(CommandHandler("codehelp", cmd_code_help))
+
     # Capture code-looking text (ensure this comes before generic text handlers)
     app.add_handler(MessageHandler(filters.TEXT & ~filters.COMMAND, handle_code_message))

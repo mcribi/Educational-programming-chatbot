@@ -11,6 +11,9 @@ from db.models.attempt import Attempt
 from sqlalchemy import func, Integer
 from db.models.exercise import Exercise
 from db.models.topic import Topic
+from handlers.code import code_help_text
+from telegram.error import BadRequest
+
 
 GREETINGS = ["hola", "ola", "buenas", "hey", "holi", "hello", "saludos", "qué tal", "start"]
 
@@ -56,7 +59,8 @@ async def _send_code_prompt(query_or_update, context, ex: Exercise):
     Send a concise prompt for the selected code exercise:
     - title/question
     - sample input/output (first sample)
-    - limits + instructions (/run, /submit, /hint, /solution)
+    - limits + short instructions
+    - inline buttons: ℹ️ Ayuda, 🔁 Siguiente, ⬅ Volver
     """
     # Extract first sample to show
     sample_io = ""
@@ -85,15 +89,45 @@ async def _send_code_prompt(query_or_update, context, ex: Exercise):
         f"{sample_io}\n\n"
         f"*Límites:* {limits_str}\n\n"
         "Envía tu solución en un bloque ```cpp ... ```\n"
-        "y usa /run (ejemplos) o /submit (tests completos).\n"
+        "y usa /out (salida tal cual), /run (ejemplos) o /submit (tests completos).\n"
         "Opcional: /hint y /solution."
     )
 
-    # Output via callback or message
-    if hasattr(query_or_update, "message") and query_or_update.message:
-        await query_or_update.message.edit_text(text, parse_mode="Markdown")
-    else:
-        await query_or_update.callback_query.message.edit_text(text, parse_mode="Markdown")
+    # Inline keyboard ONLY for code mode, with help button
+    kb = InlineKeyboardMarkup([
+        [InlineKeyboardButton("ℹ️ Ayuda", callback_data="code_help")],
+        [
+            InlineKeyboardButton("🔁 Siguiente enunciado", callback_data="repeat_mode"),
+            InlineKeyboardButton("⬅ Volver al menú de práctica", callback_data="back_to_mode"),
+        ]
+    ])
+
+    # Output via callback or message (edit if possible; otherwise send new msg)
+    try:
+        if hasattr(query_or_update, "message") and query_or_update.message:
+            # viene de un update normal
+            await query_or_update.message.edit_text(
+                text, parse_mode="Markdown", reply_markup=kb
+            )
+        else:
+            # viene de callback_query
+            await query_or_update.callback_query.message.edit_text(
+                text, parse_mode="Markdown", reply_markup=kb
+            )
+    except BadRequest as e:
+        # If content+markup are identical, Telegram refuses to edit.
+        if "Message is not modified" in str(e):
+            # send as a new message instead
+            if hasattr(query_or_update, "message") and query_or_update.message:
+                await query_or_update.message.reply_text(
+                    text, parse_mode="Markdown", reply_markup=kb
+                )
+            else:
+                await query_or_update.callback_query.message.reply_text(
+                    text, parse_mode="Markdown", reply_markup=kb
+                )
+        else:
+            raise
 
 # ------------------------------------------------------------------------------
 # Function to show the main menu
@@ -351,6 +385,10 @@ async def handle_callback(update, context):
 
     elif data == "main_menu":
         await show_main_menu(update, context)
+    
+    elif data == "code_help":
+        await query.message.reply_text(code_help_text(short=False), parse_mode="Markdown")
+
 
     # View statistics
     elif data == "view_stats":

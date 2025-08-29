@@ -5,6 +5,7 @@ from src.exercise_generator import ExerciseGenerator
 from db.database import SessionLocal
 from db.models.attempt import Attempt
 from db.models.exercise import Exercise as ExerciseModel
+from handlers.code import code_help_text
 
 import random
 
@@ -45,7 +46,7 @@ async def send_question(update: Update, context: ContextTypes.DEFAULT_TYPE):
     mode = context.user_data["current_mode"]
     available_exercises = context.user_data["available_exercises"]
 
-    #Weighted pick based on last attempt per exercise 
+    # Weighted pick based on last attempt per exercise
     weighted_exercises = []
     with SessionLocal() as session:
         for e in available_exercises:
@@ -63,7 +64,14 @@ async def send_question(update: Update, context: ContextTypes.DEFAULT_TYPE):
     exercises, weights = zip(*weighted_exercises)
     exercise = random.choices(exercises, weights=weights, k=1)[0]
 
+    # Store the chosen exercise (src object)
     context.user_data["current_exercise"] = exercise
+
+    # Also store the DB exercise id for /run and /submit
+    with SessionLocal() as session:
+        row = session.query(ExerciseModel.id).filter_by(question=exercise.question, type="code").first()
+        if row:
+            context.user_data["current_exercise_id"] = row[0]
 
     if mode == "test":
         # TEST MODE UI
@@ -82,11 +90,28 @@ async def send_question(update: Update, context: ContextTypes.DEFAULT_TYPE):
         )
     else:
         # CODE MODE UI
-        # We ask the student to paste C++ code. Fenced blocks are accepted but not required.
-        # If the exercise provides an input sample, show it.
+        # Optional stdin example
         stdin_hint = ""
         if hasattr(exercise, "stdin") and exercise.stdin:
             stdin_hint = f"\n\n🧪 <b>Entrada de prueba</b> (stdin):\n<pre>{exercise.stdin}</pre>"
+
+        # Limits (if present on the exercise)
+        limits_bits = []
+        if getattr(exercise, "time_limit_ms", None):
+            limits_bits.append(f"⏱ {exercise.time_limit_ms} ms")
+        if getattr(exercise, "memory_limit_mb", None):
+            limits_bits.append(f"💾 {exercise.memory_limit_mb} MB")
+        limits_line = f"\n\n<b>Límites</b>: {' | '.join(limits_bits)}" if limits_bits else ""
+
+        # Commands cheat-sheet (HTML)
+        help_html = (
+            "\n\nℹ️ <b>Comandos</b><br/>"
+            "• <b>/out</b> — ejecuta tu último código y muestra la salida.<br/>"
+            "• <b>/run</b> — ejecuta los <i>ejemplos</i> del enunciado.<br/>"
+            "• <b>/submit</b> — ejecuta <i>todos</i> los tests y evalúa.<br/>"
+            "• <b>/hint</b> — muestra una pista (si hay).<br/>"
+            "• <b>/solution</b> — solución oficial."
+        )
 
         buttons = [
             [InlineKeyboardButton("⬅ Volver al menú de práctica", callback_data="back_to_mode")],
@@ -98,12 +123,16 @@ async def send_question(update: Update, context: ContextTypes.DEFAULT_TYPE):
             text=(
                 f"<b>Ejercicio de Programación (C++)</b>\n\n"
                 f"{exercise.question}\n\n"
-                f"💡 Envía tu solución C++ en un único mensaje. Acepto bloques con ```cpp ... ``` o texto plano."
+                f"💡 Envía tu solución C++ en un único mensaje. "
+                f"Acepto bloques con ```cpp ... ``` o texto plano."
                 f"{stdin_hint}"
+                f"{limits_line}"
+                f"{help_html}"
             ),
             reply_markup=InlineKeyboardMarkup(buttons),
             parse_mode="HTML"
         )
+
 
 
 async def handle_response(update: Update, context: ContextTypes.DEFAULT_TYPE):
