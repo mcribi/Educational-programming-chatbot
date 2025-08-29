@@ -19,7 +19,7 @@ async def show_lesson_menu(update, context, topic_key=None):
         [InlineKeyboardButton(lesson.title, callback_data=f"lesson_{topic_key}_{i}")]
         for i, lesson in enumerate(lessons)
     ]
-    buttons.append([InlineKeyboardButton("⬅ Volver al menú principal", callback_data="main_menu")]) #button for going back to the main menu
+    buttons.append([InlineKeyboardButton("⬅ Volver a temas", callback_data="back_to_theory_topics")])
 
     await query.message.edit_text(
         f"📖 <b>{topic_key}</b>: elige una lección:",

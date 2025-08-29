@@ -257,13 +257,47 @@ async def handle_callback(update, context):
         buttons = [
             [InlineKeyboardButton("📝 Test", callback_data="mode_test")],
             [InlineKeyboardButton("💻 Programar", callback_data="mode_code")],
-            [InlineKeyboardButton("⬅ Volver", callback_data="practice")]
+            [InlineKeyboardButton("⬅ Volver a temas", callback_data="back_to_topics")]
         ]
         await query.message.edit_text(
             f"Has elegido <b>{topic}</b>.\n\n¿Qué tipo de ejercicio quieres hacer:",
             reply_markup=InlineKeyboardMarkup(buttons),
             parse_mode="HTML"
         )
+    elif data == "back_to_topics":
+        buttons = [
+            [InlineKeyboardButton(topic, callback_data=f"topic_{i}")]
+            for i, topic in enumerate(cpp_topics)
+        ]
+        buttons.append([InlineKeyboardButton("📊 Ver estadísticas", callback_data="view_stats")])
+        buttons.append([InlineKeyboardButton("⬅ Volver", callback_data="main_menu")])
+
+        await query.message.edit_text(
+            "Elige un tema para practicar:",
+            reply_markup=InlineKeyboardMarkup(buttons)
+        )
+
+    elif data == "back_to_theory_topics":
+        buttons = [
+            [InlineKeyboardButton(topic, callback_data=f"theory_{i}")]
+            for i, topic in enumerate(cpp_topics)
+        ]
+        buttons.append([InlineKeyboardButton("⬅ Volver", callback_data="main_menu")])
+
+        await query.message.edit_text(
+            "Elige un tema de C++ para aprender:",
+            reply_markup=InlineKeyboardMarkup(buttons)
+        )
+
+    elif data.startswith("back_to_lessons:"):
+        topic_key = data.split(":", 1)[1]
+        # Return to the list of lessons on this topic
+        await show_lesson_menu(update, context, topic_key=topic_key)
+
+    elif data.startswith("back_to_lessons_idx:"):
+        idx = int(data.split(":", 1)[1])
+        topic_key = cpp_topics[idx]
+        await show_lesson_menu(update, context, topic_key=topic_key)
 
     elif data.startswith("mode_"):
         mode = data.split("_")[1]
@@ -364,17 +398,24 @@ async def handle_callback(update, context):
             await query.message.edit_text("Ocurrió un error. Usa /start para volver al menú.")
             return
 
+        # Search index for current topic
+        try:
+            idx = cpp_topics.index(topic)
+        except ValueError:
+            idx = 0  #fallback
+
         buttons = [
             [InlineKeyboardButton("📝 Test", callback_data="mode_test")],
             [InlineKeyboardButton("💻 Programar", callback_data="mode_code")],
-            [InlineKeyboardButton("⬅ Volver al menú", callback_data="main_menu")]
-        ]
+            [InlineKeyboardButton("⬅ Volver a temas", callback_data="back_to_topics")]
+    ]
 
         await query.message.edit_text(
             f"Has elegido <b>{topic}</b>.\n\n¿Qué tipo de ejercicio quieres hacer?",
             reply_markup=InlineKeyboardMarkup(buttons),
             parse_mode="HTML"
         )
+
 
     elif data.startswith("lesson_"):
         await show_lesson(update, context)

@@ -1,0 +1,77 @@
+from src.lesson import Lesson
+
+lesson = Lesson(
+    title="Ejemplos de funciones en C++",
+    content=(
+        "Repasamos varios casos típicos de funciones: con retorno, <code>void</code>, con parámetros, uso de <code>return</code>, "
+        "reutilización y precondiciones.\n\n"
+
+        "🔹 <b>1) Función con retorno (cálculo simple)</b>\n"
+        "<pre><code>double Cuadrado(double x) {\n"
+        "    return x * x;\n"
+        "}\n\n"
+        "int main() {\n"
+        "    cout &lt;&lt; Cuadrado(4.0);  // 16\n"
+        "}</code></pre>\n"
+        "👉 Devuelve un valor que se puede imprimir o guardar.\n\n"
+
+        "🔹 <b>2) Función <code>void</code> (realiza una acción)</b>\n"
+        "<pre><code>void Linea(int n) {\n"
+        "    for (int i = 0; i &lt; n; i++) cout &lt;&lt; \"-\";\n"
+        "    cout &lt;&lt; \"\\n\";\n"
+        "}\n\n"
+        "int main() {\n"
+        "    Linea(5);  // -----\n"
+        "}</code></pre>\n"
+        "👉 No devuelve nada: solo hace algo (efecto).\n\n"
+
+        "🔹 <b>3) Parámetros y reutilización</b>\n"
+        "<pre><code>int Suma(int a, int b) {\n"
+        "    return a + b;\n"
+        "}\n\n"
+        "int main() {\n"
+        "    int x = Suma(3, 4);   // 7\n"
+        "    int y = Suma(10, -2); // 8\n"
+        "    cout &lt;&lt; x &lt;&lt; \" \" &lt;&lt; y;\n"
+        "}</code></pre>\n"
+        "👉 La misma función sirve para muchos valores.\n\n"
+
+        "🔹 <b>4) Uso de <code>return</code> para salir antes</b>\n"
+        "<pre><code>bool EsPar(int n) {\n"
+        "    if (n % 2 == 0) return true;\n"
+        "    return false;\n"
+        "}</code></pre>\n"
+        "👉 <code>return</code> termina la función y devuelve el resultado.\n\n"
+
+        "🔹 <b>5) Componer llamadas (una función llama a otra)</b>\n"
+        "<pre><code>int Doblar(int x) { return 2 * x; }\n"
+        "int Cuadrado(int x) { return x * x; }\n\n"
+        "int main() {\n"
+        "    cout &lt;&lt; Cuadrado(Doblar(3)); // Doblar(3)=6; Cuadrado(6)=36\n"
+        "}</code></pre>\n"
+        "👉 Puedes encadenar funciones para resolver pasos.\n\n"
+
+        "🔹 <b>6) Función con bucle (factorial) + precondición documentada</b>\n"
+        "<pre><code>// Prec: n &gt;= 0 y n &lt;= 12 (para evitar desbordamiento en int)\n"
+        "int Factorial(int n) {\n"
+        "    int f = 1;\n"
+        "    for (int i = 2; i &lt;= n; i++) f *= i;\n"
+        "    return f;\n"
+        "}\n\n"
+        "int main() {\n"
+        "    cout &lt;&lt; Factorial(5); // 120\n"
+        "}</code></pre>\n"
+        "👉 Es buena práctica indicar precondiciones.\n\n"
+
+        "🔹 <b>7) Ámbito: variables locales dentro de la función</b>\n"
+        "<pre><code>int Incrementar(int v) {\n"
+        "    int temp = v + 1;  // local: solo existe aquí\n"
+        "    return temp;\n"
+        "}\n\n"
+        "int main() {\n"
+        "    // cout &lt;&lt; temp;  // ❌ Error: temp no existe en main\n"
+        "    cout &lt;&lt; Incrementar(7); // 8\n"
+        "}</code></pre>\n"
+        "👉 Las variables locales no son visibles fuera de su función.\n"
+    )
+)
