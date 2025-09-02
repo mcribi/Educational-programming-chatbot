@@ -1,10 +1,12 @@
 from telegram import InlineKeyboardMarkup, InlineKeyboardButton
 import asyncio
-
+from time import time
+import random
 from data.topics import cpp_topics
 from data.theory_cpp import theory_cpp
 from handlers.theory import show_lesson_menu, show_lesson
 from handlers.exercises import start_practice, send_question
+from handlers.search import search_entry, handle_search_pagination
 from db.models.user import User
 from db.database import SessionLocal
 from db.models.attempt import Attempt
@@ -13,7 +15,26 @@ from db.models.exercise import Exercise
 from db.models.topic import Topic
 from handlers.code import code_help_text
 from telegram.error import BadRequest
+from db.models.suggestion import Suggestion
+from bot.config import ADMIN_CHAT_ID
+from sqlalchemy.exc import SQLAlchemyError
+from html import escape
+import json
+import re
+from html import escape as h
+from telegram.constants import ParseMode
 
+try:
+    from handlers.code import CODE_KEY
+except Exception:
+    CODE_KEY = "last_code"
+
+
+#constant exam
+EXAM_NUM_TEST = 10
+EXAM_NUM_CODE = 5
+EXAM_POINTS_TEST_EACH = 0.5   # 10*0.5=5 5 points of test but 10 test's questions
+EXAM_POINTS_CODE_EACH = 1.0   # 5 points of programming
 
 GREETINGS = ["hola", "ola", "buenas", "hey", "holi", "hello", "saludos", "qué tal", "start"]
 
@@ -54,6 +75,10 @@ def _pick_next_code_exercise(session, user_id: int, topic_name: str):
     # If all were solved, just return the first one (user can practice again)
     return exercises[0]
 
+def _pre(s: str) -> str:
+    # Render sure for blocks monospaces
+    return f"<pre><code>{h(s)}</code></pre>"
+
 async def _send_code_prompt(query_or_update, context, ex: Exercise):
     """
     Send a concise prompt for the selected code exercise:
@@ -61,39 +86,48 @@ async def _send_code_prompt(query_or_update, context, ex: Exercise):
     - sample input/output (first sample)
     - limits + short instructions
     - inline buttons: ℹ️ Ayuda, 🔁 Siguiente, ⬅ Volver
+    (Usa HTML + escape para evitar errores de parseo de Telegram)
     """
-    # Extract first sample to show
+    #Sample (NO strip: preserve significant spaces) 
     sample_io = ""
     if ex.tests_json and isinstance(ex.tests_json, dict):
         samples = (ex.tests_json or {}).get("sample", []) or []
         if samples:
             s = samples[0]
-            inp = (s.get("input") or "").strip()
-            out = (s.get("output") or "").strip()
+            inp = (s.get("input") or "")
+            out = (s.get("output") or "")
             sample_io = (
-                "\n*Ejemplo (sample)*\n"
-                f"*Entrada:*\n```\n{inp}\n```\n"
-                f"*Salida esperada:*\n```\n{out}\n```"
+                "<b>Ejemplo (sample)</b>\n"
+                "<b>Entrada:</b>\n" + _pre(inp) + "\n"
+                "<b>Salida esperada:</b>\n" + _pre(out)
             )
 
+    #limits
     limits = []
-    if ex.time_limit_ms:
+    if getattr(ex, "time_limit_ms", None):
         limits.append(f"{ex.time_limit_ms} ms")
-    if ex.memory_limit_mb:
+    if getattr(ex, "memory_limit_mb", None):
         limits.append(f"{ex.memory_limit_mb} MB")
     limits_str = " · ".join(limits) if limits else "1.5 s · 128 MB"
 
+    # Main text (all except <pre><code> blocks)
+    enunciado = h(getattr(ex, "question", ""))
+    pista = getattr(ex, "hint", None)
+    pista_html = f"\n<b>Pista:</b> {h(pista)}" if pista else ""
+
     text = (
-        f"💻 *Ejercicio de programación*\n\n"
-        f"*Enunciado:* {ex.question}\n"
+        "<b>💻 Ejercicio de programación</b>\n\n"
+        f"<b>Enunciado:</b> {enunciado}"
+        f"{pista_html}\n\n"
         f"{sample_io}\n\n"
-        f"*Límites:* {limits_str}\n\n"
-        "Envía tu solución en un bloque ```cpp ... ```\n"
-        "y usa /out (salida tal cual), /run (ejemplos) o /submit (tests completos).\n"
+        f"<b>Límites:</b> {h(limits_str)}\n\n"
+        "Envía tu solución en un bloque (triple comilla invertida) o pega tu código directamente:\n"
+        + _pre("cpp\n// tu código aquí\n") +
+        "\nUsa /out (salida tal cual), /run (sample) o /submit (tests completos).\n"
         "Opcional: /hint y /solution."
     )
 
-    # Inline keyboard ONLY for code mode, with help button
+    #  Inline keyboard 
     kb = InlineKeyboardMarkup([
         [InlineKeyboardButton("ℹ️ Ayuda", callback_data="code_help")],
         [
@@ -102,31 +136,29 @@ async def _send_code_prompt(query_or_update, context, ex: Exercise):
         ]
     ])
 
-    # Output via callback or message (edit if possible; otherwise send new msg)
+    # Edit if you can; if not, reply with a new message 
     try:
         if hasattr(query_or_update, "message") and query_or_update.message:
-            # viene de un update normal
             await query_or_update.message.edit_text(
-                text, parse_mode="Markdown", reply_markup=kb
+                text, parse_mode=ParseMode.HTML, reply_markup=kb, disable_web_page_preview=True
             )
         else:
-            # viene de callback_query
             await query_or_update.callback_query.message.edit_text(
-                text, parse_mode="Markdown", reply_markup=kb
+                text, parse_mode=ParseMode.HTML, reply_markup=kb, disable_web_page_preview=True
             )
     except BadRequest as e:
-        # If content+markup are identical, Telegram refuses to edit.
+        # If the content matches and Telegram does not want to edit, we send a new message.
         if "Message is not modified" in str(e):
-            # send as a new message instead
             if hasattr(query_or_update, "message") and query_or_update.message:
                 await query_or_update.message.reply_text(
-                    text, parse_mode="Markdown", reply_markup=kb
+                    text, parse_mode=ParseMode.HTML, reply_markup=kb, disable_web_page_preview=True
                 )
             else:
                 await query_or_update.callback_query.message.reply_text(
-                    text, parse_mode="Markdown", reply_markup=kb
+                    text, parse_mode=ParseMode.HTML, reply_markup=kb, disable_web_page_preview=True
                 )
         else:
+            # If it fails for any other reason, propagate it. 
             raise
 
 # ------------------------------------------------------------------------------
@@ -134,7 +166,11 @@ async def _send_code_prompt(query_or_update, context, ex: Exercise):
 async def show_main_menu(update, context):
     buttons = [
         [InlineKeyboardButton("📚 Aprender", callback_data="learn")],
-        [InlineKeyboardButton("📝 Practicar", callback_data="practice")]
+        [InlineKeyboardButton("📝 Practicar", callback_data="practice")], 
+        [InlineKeyboardButton("💡 Sugerencias", callback_data="suggest")], 
+        [InlineKeyboardButton("🔎 Buscar concepto", callback_data="search_start")],
+        [InlineKeyboardButton("🧪 Examen por tema", callback_data="exam_by_topic")],
+        [InlineKeyboardButton("🏁 Examen final", callback_data="exam_final")]
     ]
     if update.message:
         await update.message.reply_text("¿Qué quieres hacer?", reply_markup=InlineKeyboardMarkup(buttons))
@@ -168,19 +204,69 @@ async def start(update, context):
 
 # Function to handle text messages
 async def handle_text(update, context):
+
+    #Capture code during exam (phase code)
+    exam_state = context.user_data.get("exam")
+    if exam_state and exam_state.get("active") and exam_state.get("phase") == "code":
+        raw = update.message.text or ""
+        code = _extract_code_block(raw)
+        if code:
+            # store code where cmd_submit will read it
+            context.user_data[CODE_KEY] = code
+            context.user_data["exam_have_code"] = True
+            # show Enviar / Reintentar buttons
+            kb = InlineKeyboardMarkup([
+                [InlineKeyboardButton("✅ Enviar", callback_data="exam_submit_code"),
+                InlineKeyboardButton("🔁 Reintentar", callback_data="exam_retry_code")]
+            ])
+            await update.message.reply_text("✅ Código recibido.", reply_markup=kb)
+        else:
+            await update.message.reply_text(
+                "✍️ Envía tu solución como texto (no hace falta ```cpp```).\nCuando la reciba, te pondré los botones *Enviar* y *Reintentar*.",
+                parse_mode="Markdown"
+            )
+        return
+
+    #Capture code in normal 'programar' mode too
+    if context.user_data.get("awaiting_code"):
+        raw = update.message.text or ""
+        code = _extract_code_block(raw)
+        if code:
+            context.user_data[CODE_KEY] = code
+            kb = InlineKeyboardMarkup([
+                [InlineKeyboardButton("✅ Enviar (/submit)", callback_data="code_submit_cb"),
+                InlineKeyboardButton("🔁 Reintentar", callback_data="code_retry_cb")]
+            ])
+            await update.message.reply_text("✅ Código recibido.", reply_markup=kb)
+        else:
+            await update.message.reply_text(
+                "✍️ Envía tu solución como texto (no hace falta ```cpp```)."
+                "Cuando la reciba, verás los botones *Enviar* y *Reintentar*.",
+                parse_mode="Markdown"
+            )
+        return
+
     if "pending_registration" in context.user_data:
         info = context.user_data.pop("pending_registration")
         name = update.message.text.strip()
 
         with SessionLocal() as session:
-            new_user = User(
-                telegram_id=info["telegram_id"],
-                username=info["username"],
-                name=name
-            )
-            session.add(new_user)
-            session.commit()
-            session.refresh(new_user)
+            try:
+                new_user = User(
+                    telegram_id=info["telegram_id"],
+                    username=info["username"],
+                    name=name
+                )
+                session.add(new_user)
+                session.commit()
+                session.refresh(new_user)
+            except SQLAlchemyError:
+                session.rollback()
+                await update.message.reply_text(
+                    "❌ Ha ocurrido un error registrándote. Inténtalo de nuevo en unos segundos."
+                )
+                return
+
 
         context.user_data["user_id"] = new_user.id
 
@@ -189,6 +275,61 @@ async def handle_text(update, context):
             parse_mode="HTML"
         )
         await show_main_menu(update, context)
+        return
+
+    elif context.user_data.get("awaiting_suggestion"):
+        text = (update.message.text or "").strip()
+        if not text:
+            await update.message.reply_text("❌ El mensaje está vacío. Escribe tu sugerencia o pulsa cancelar.")
+            return
+        if len(text) > 1000:
+            await update.message.reply_text("⚠️ Intenta resumir (máx. 1000 caracteres).")
+            return
+
+        # Anti-spam 30s between suggestion
+        now = time()
+        last = context.user_data.get("last_suggestion_ts", 0)
+        if now - last < 30:
+            await update.message.reply_text("⏳ Demasiado rápido. Espera unos segundos y vuelve a intentarlo.")
+            return
+
+        user_id = context.user_data.get("user_id")
+        tg = update.effective_user
+
+        # save in the db
+        try:
+            with SessionLocal() as session:
+                sug = Suggestion(user_id=user_id, text=text)  # user_id puede ser None si no registrado
+                session.add(sug)
+                session.commit()
+        except Exception:
+            pass
+
+        # sending to the admin
+        try:
+            admin_text = (
+                "📥 *Nueva sugerencia*\n\n"
+                f"👤 Usuario: {tg.username or tg.full_name} (id {tg.id})\n"
+                f"🆔 Interno: {user_id or '—'}\n"
+                f"💬 Texto:\n{text}"
+            )
+            if ADMIN_CHAT_ID:
+                await context.bot.send_message(
+                    chat_id=ADMIN_CHAT_ID,
+                    text=admin_text,
+                    parse_mode="Markdown"
+                )
+        except Exception:
+            pass
+
+        context.user_data["awaiting_suggestion"] = False
+        context.user_data["last_suggestion_ts"] = now
+
+        await update.message.reply_text(
+            "✅ ¡Gracias por tu sugerencia! La hemos recibido.",
+        )
+        await show_main_menu(update, context)
+        return
     else:
         text = update.message.text.lower().strip()
         if text in GREETINGS:
@@ -201,8 +342,224 @@ async def handle_callback(update, context):
     query = update.callback_query
     await query.answer()
     data = query.data
+    if data == "search_start":
+        return await search_entry(update, context)
 
-    if data == "learn":
+    elif data in ("search_next", "search_prev"):
+        return await handle_search_pagination(update, context)
+    
+    if data == "suggest":
+        # prevent practice/test state from hijacking the next text
+        for k in ("current_topic", "current_mode", "current_exercise", "current_options", "awaiting_code"):
+            context.user_data.pop(k, None)
+
+        context.user_data["awaiting_suggestion"] = True
+        await query.message.edit_text(
+            "📝 *Envíame tu sugerencia ahora mismo*\n\n"
+            "Puedes contarnos ideas, fallos, mejoras… (máx. 1000 caracteres).\n\n"
+            "_Cuando la envíes, te confirmaré la recepción._",
+            parse_mode="Markdown",
+            reply_markup=InlineKeyboardMarkup([[InlineKeyboardButton("⬅ Cancelar", callback_data="main_menu")]])
+        )
+
+    elif data == "exam_retry_code":
+        # borrar código y pedirlo de nuevo
+        context.user_data.pop(CODE_KEY, None)
+        context.user_data["awaiting_code"] = True
+        await query.message.reply_text("🔁 Reintenta: pega de nuevo tu solución para este ejercicio.")
+        return
+
+    elif data == "exam_submit_code":
+        # no enviar si no hay código aún
+        if CODE_KEY not in context.user_data:
+            await query.answer("Pega tu código primero.", show_alert=True)
+            return
+
+        await query.message.reply_text("📨 Enviando y corrigiendo...")
+
+        from handlers.code import cmd_submit
+        await cmd_submit(update, context)  # imprime AC/WA
+
+        # Puntuar y avanzar
+        exam = context.user_data.get("exam", {})
+        user_id = context.user_data.get("user_id")
+        ex_id = context.user_data.get("current_exercise_id")
+
+        got_point = False
+        if user_id and ex_id:
+            with SessionLocal() as session:
+                ok = (session.query(Attempt)
+                    .filter(Attempt.user_id == user_id, Attempt.exercise_id == ex_id, Attempt.is_correct.is_(True))
+                    .order_by(Attempt.id.desc())
+                    .first())
+                if ok:
+                    got_point = True
+
+        if ex_id:
+            exam["answers"].append((ex_id, bool(got_point), "code"))
+        if got_point:
+            exam["score_code"] = exam.get("score_code", 0.0) + EXAM_POINTS_CODE_EACH
+
+        # after updating score and clearing CODE_KEY
+        exam["i_code"] += 1
+        context.user_data.pop(CODE_KEY, None)
+        context.user_data.pop("last_code", None)
+        context.user_data["awaiting_code"] = True
+
+        # send confirmation
+        await query.message.reply_text("✅ Solución enviada. Cargando el siguiente ejercicio…")
+
+        # force sending of the following statement as a new message
+        from telegram import Update
+        fake_update = Update(update.update_id, callback_query=query)
+        await _exam_send_current(fake_update, context)
+
+    #for programming outside the exam
+    elif data == "code_retry_cb":
+        context.user_data.pop(CODE_KEY, None)
+        await query.message.reply_text("🔁 Reintenta: pega de nuevo tu solución.")
+        return
+
+    elif data == "code_submit_cb":
+        if not context.user_data.get(CODE_KEY):
+            await query.answer("Pega tu código primero.", show_alert=True)
+            return
+        from handlers.code import cmd_submit
+        await cmd_submit(update, context)
+        return
+    
+
+    elif data == "exam_by_topic":
+        #choose topic
+        buttons = [
+            [InlineKeyboardButton(topic, callback_data=f"exam_topic_{i}")]
+            for i, topic in enumerate(cpp_topics)
+        ]
+        buttons.append([InlineKeyboardButton("⬅ Volver", callback_data="main_menu")])
+        await query.message.edit_text(
+            "Elige un tema para el examen:",
+            reply_markup=InlineKeyboardMarkup(buttons)
+        )
+
+    elif data.startswith("exam_topic_"):
+        index = int(data.split("_")[2])
+        topic_name = cpp_topics[index]
+        # make an exam only with this topic
+        with SessionLocal() as session:
+            t = session.query(Topic).filter(Topic.name == topic_name).one_or_none()
+            if not t:
+                await query.message.edit_text("⚠️ Tema no encontrado.")
+                return
+            test_ids, code_ids = _build_exam_sets(session, topic_id=t.id)
+
+        if not test_ids and not code_ids:
+            await query.message.edit_text("⚠️ No hay contenido para examen en este tema.")
+            return
+
+        _exam_bootstrap_state(context, scope="topic", topic=topic_name, test_ids=test_ids, code_ids=code_ids)
+        await _exam_send_current(update, context)
+
+    elif data == "exam_final":
+        # make an exam with all the topics
+        with SessionLocal() as session:
+            test_ids, code_ids = _build_exam_sets(session, topic_id=None)  # None=global
+
+        if not test_ids and not code_ids:
+            await query.message.edit_text("⚠️ No hay contenido suficiente para el examen final.")
+            return
+
+        _exam_bootstrap_state(context, scope="final", topic="Todos los temas", test_ids=test_ids, code_ids=code_ids)
+        await query.message.edit_text(
+            "🏁 <b>Examen final</b> iniciado.\n\nSe evaluarán 10 preguntas tipo test y 5 ejercicios de programación.",
+            parse_mode="HTML"
+        )
+        await _exam_send_current(update, context)
+
+    elif data.startswith("exam_answer_"):
+        if not context.user_data.get("exam", {}).get("active"):
+            await query.answer("No hay examen en curso", show_alert=True)
+            return
+
+        exam = context.user_data["exam"]
+        idx_opt = int(data.split("_")[2])
+
+        i = exam["i_test"]
+        ex_id = exam["test_ids"][i] if i < len(exam["test_ids"]) else None
+
+        # options saved in the state by _exam_send_current
+        opts = exam.get("current_test_options", [])
+        corr_idx = exam.get("current_test_correct_idx")
+        corr_txt = exam.get("current_test_correct_text") 
+
+        # selected option
+        selected = opts[idx_opt] if 0 <= idx_opt < len(opts) else None
+
+        # validate by index or by text
+        is_correct = False
+        if corr_idx is not None:
+            is_correct = (idx_opt == corr_idx)
+        elif corr_txt is not None and selected is not None:
+            is_correct = (selected == corr_txt)
+
+        if is_correct:
+            exam["score_test"] += EXAM_POINTS_TEST_EACH
+        if ex_id:
+            exam["answers"].append((ex_id, bool(is_correct), "test"))
+
+        # move forward and clear temporary status
+        exam["i_test"] += 1
+        exam.pop("current_test_options", None)
+        exam.pop("current_test_correct_idx", None)
+        exam.pop("current_test_correct_text", None)
+
+        await _exam_send_current(update, context)
+
+    elif data == "exam_cancel":
+        context.user_data.pop("exam", None)
+        await query.message.edit_text("Examen cancelado.", reply_markup=InlineKeyboardMarkup([
+            [InlineKeyboardButton("⬅ Volver", callback_data="main_menu")]
+        ]))
+
+    
+    elif data.startswith("sug_page:"):
+        #only admin
+        if not _is_admin(update):
+            await query.answer("Solo admin", show_alert=True)
+            return
+        _, flt, page = data.split(":")
+        await _send_suggestions_page(update, context, flt, int(page), via_callback=True)
+
+    elif data.startswith("sug_filter:"):
+        if not _is_admin(update):
+            await query.answer("Solo admin", show_alert=True)
+            return
+        _, flt, page = data.split(":")
+        await _send_suggestions_page(update, context, flt, int(page), via_callback=True)
+
+    elif data.startswith("sug_toggle:"):
+        if not _is_admin(update):
+            await query.answer("Solo admin", show_alert=True)
+            return
+        # format: sug_toggle:<id>:<new_state>:<flt>:<page>
+        try:
+            _, sid, new_state, flt, page = data.split(":")
+            sid = int(sid)
+            to_resolved = (new_state == "1")
+            with SessionLocal() as session:
+                sug = session.query(Suggestion).filter(Suggestion.id == sid).one_or_none()
+                if not sug:
+                    await query.answer("No existe", show_alert=True)
+                else:
+                    sug.resolved = to_resolved
+                    session.commit()
+                    await query.answer("Actualizado", show_alert=False)
+            # refresh the same page
+            await _send_suggestions_page(update, context, flt, int(page), via_callback=True)
+        except Exception:
+            await query.answer("Error actualizando", show_alert=True)
+
+
+    elif data == "learn":
         buttons = [
             [InlineKeyboardButton(topic, callback_data=f"theory_{i}")]
             for i, topic in enumerate(cpp_topics)
@@ -408,7 +765,7 @@ async def handle_callback(update, context):
             [InlineKeyboardButton("📝 Test", callback_data="mode_test")],
             [InlineKeyboardButton("💻 Programar", callback_data="mode_code")],
             [InlineKeyboardButton("⬅ Volver a temas", callback_data="back_to_topics")]
-    ]
+        ]
 
         await query.message.edit_text(
             f"Has elegido <b>{topic}</b>.\n\n¿Qué tipo de ejercicio quieres hacer?",
@@ -484,3 +841,463 @@ async def handle_callback(update, context):
             parse_mode="HTML",
             reply_markup=InlineKeyboardMarkup(buttons)
         )
+
+
+# Command /suggest
+async def cmd_suggest(update, context):
+    context.user_data["awaiting_suggestion"] = True
+    await update.message.reply_text(
+        "📝 *Envíame tu sugerencia ahora mismo*",
+        parse_mode="Markdown",
+        reply_markup=InlineKeyboardMarkup([
+            [InlineKeyboardButton("⬅ Cancelar", callback_data="main_menu")]
+        ])
+    )
+
+# command /id: show your IDs and the ADMIN_CHAT_ID charge in the container
+# async def cmd_id(update, context):
+#     u = update.effective_user
+#     c = update.effective_chat
+#     await update.message.reply_text(
+#         f"👤 user.id = {u.id}\n"
+#         f"💬 chat.id = {c.id}\n"
+#         f"⚙️ ADMIN_CHAT_ID (config) = {ADMIN_CHAT_ID}"
+#     )
+
+# # command /pingadmin: send a message of proof to the ADMIN_CHAT_ID
+# async def cmd_pingadmin(update, context):
+#     try:
+#         await context.bot.send_message(chat_id=ADMIN_CHAT_ID, text="✅ Ping al admin OK")
+#         await update.message.reply_text("He podido enviar al ADMIN_CHAT_ID.")
+#     except Exception as e:
+#         await update.message.reply_text(f"❌ No pude enviar al ADMIN_CHAT_ID. Error: {e}")
+
+SUG_PAGE_SIZE = 10
+
+def _is_admin(update) -> bool:
+    return update.effective_user and update.effective_user.id == int(ADMIN_CHAT_ID)
+
+def _render_suggestion_row(sug) -> str:
+    # sug: (Suggestion, username, telegram_id)
+    s, username, tg_id = sug
+    who = username or (str(tg_id) if tg_id else "—")
+    status = "✅" if s.resolved else "🟠"
+    return (
+        f"{status} <b>#{s.id}</b> "
+        f"<i>{s.created_at.strftime('%Y-%m-%d %H:%M')}</i> — "
+        f"<code>{escape(who)}</code>\n"
+        f"<pre>{escape((s.text or '')[:500])}</pre>"
+    )
+
+async def cmd_suggestions(update, context):
+    if not _is_admin(update):
+        await update.message.reply_text("⛔ Solo la administradora puede usar este comando.")
+        return
+
+    # filter: /suggestions, /suggestions all|open|resolved
+    args = (context.args or [])
+    flt = (args[0].lower() if args else "open")
+    if flt not in ("open", "resolved", "all"):
+        flt = "open"
+
+    page = 0
+    await _send_suggestions_page(update, context, flt, page, via_callback=False)
+
+async def _send_suggestions_page(update_or_query, context, flt: str, page: int, via_callback: bool):
+    # build query according to filter
+    with SessionLocal() as session:
+        q = session.query(
+            Suggestion,
+            User.username,
+            User.telegram_id
+        ).outerjoin(User, User.id == Suggestion.user_id)
+
+        if flt == "open":
+            q = q.filter(Suggestion.resolved.is_(False))
+        elif flt == "resolved":
+            q = q.filter(Suggestion.resolved.is_(True))
+
+        total = q.count()
+        suggestions = (
+            q.order_by(Suggestion.created_at.desc(), Suggestion.id.desc())
+             .offset(page * SUG_PAGE_SIZE)
+             .limit(SUG_PAGE_SIZE)
+             .all()
+        )
+
+    if not suggestions:
+        txt = "📭 No hay sugerencias para mostrar." if total == 0 else "📭 No hay más sugerencias en esta página."
+        if via_callback:
+            await update_or_query.callback_query.message.edit_text(txt)
+        else:
+            await update_or_query.message.reply_text(txt)
+        return
+
+    # body
+    lines = ["💡 <b>Sugerencias</b>"]
+    if flt == "open":
+        lines.append("Filtro: <b>Abiertas</b>")
+    elif flt == "resolved":
+        lines.append("Filtro: <b>Resueltas</b>")
+    else:
+        lines.append("Filtro: <b>Todas</b>")
+    lines.append(f"Página: <b>{page+1}</b>\n")
+
+    for s in suggestions:
+        lines.append(_render_suggestion_row(s))
+        sug = s[0]
+        # toggle button per row using separate callback
+    text = "\n".join(lines)
+
+    #  Keyboard: navigation and filter
+    from telegram import InlineKeyboardMarkup, InlineKeyboardButton
+    nav = []
+    if page > 0:
+        nav.append(InlineKeyboardButton("⬅ Prev", callback_data=f"sug_page:{flt}:{page-1}"))
+    if (page+1) * SUG_PAGE_SIZE < total:
+        nav.append(InlineKeyboardButton("Next ➡", callback_data=f"sug_page:{flt}:{page+1}"))
+
+    filters_row = [
+        InlineKeyboardButton("Abiertas", callback_data="sug_filter:open:0"),
+        InlineKeyboardButton("Resueltas", callback_data="sug_filter:resolved:0"),
+        InlineKeyboardButton("Todas", callback_data="sug_filter:all:0"),
+    ]
+
+    # Buttons per row (toggle) in separate messages for simplicity:
+    # we will send the list and then, for ergonomics, a keyboard with grouped toggles
+
+    #Create toggle keys in blocks:
+    toggles = []
+    for s in suggestions:
+        sug = s[0]
+        label = f"#{sug.id} → " + ("Reabrir" if sug.resolved else "Resolver")
+        new_state = "0" if sug.resolved else "1"  # 1=resolve, 0=reopen
+        toggles.append(InlineKeyboardButton(label, callback_data=f"sug_toggle:{sug.id}:{new_state}:{flt}:{page}"))
+
+    #  Pack toggles in groups of 3 per row:
+    toggle_rows = [toggles[i:i+3] for i in range(0, len(toggles), 3)]
+    rows = []
+    if nav:
+        rows.append(nav)
+    rows.append(filters_row)
+    rows.extend(toggle_rows)
+    rows.append([InlineKeyboardButton("🔄 Refrescar", callback_data=f"sug_page:{flt}:{page}")])
+
+    markup = InlineKeyboardMarkup(rows)
+
+    if via_callback:
+        await update_or_query.callback_query.message.edit_text(text, parse_mode="HTML", reply_markup=markup, disable_web_page_preview=True)
+    else:
+        await update_or_query.message.reply_text(text, parse_mode="HTML", reply_markup=markup, disable_web_page_preview=True)
+
+def _build_exam_sets(session, topic_id: int | None):
+    """return (test_ids, code_ids) for the exam. If topic_id is None, use all the topics"""
+    q_test = session.query(Exercise).filter(Exercise.type == "test")
+    q_code = session.query(Exercise).filter(Exercise.type == "code")
+    if topic_id is not None:
+        q_test = q_test.filter(Exercise.topic_id == topic_id)
+        q_code = q_code.filter(Exercise.topic_id == topic_id)
+
+    test_all = q_test.all()
+    code_all = q_code.all()
+    random.shuffle(test_all)
+    random.shuffle(code_all)
+    test_ids = [e.id for e in test_all[:EXAM_NUM_TEST]]
+    code_ids = [e.id for e in code_all[:EXAM_NUM_CODE]]
+    return test_ids, code_ids
+
+def _exam_bootstrap_state(context, scope: str, topic: str, test_ids: list[int], code_ids: list[int]):
+    #cleen flags of others modes
+    for k in ("current_mode", "current_exercise", "current_options", "awaiting_code", "last_code"):
+        context.user_data.pop(k, None)
+
+    context.user_data["exam"] = {
+        "active": True,
+        "scope": scope,            # 'topic' or 'final'
+        "topic": topic,            # name only for show
+        "phase": "test",
+        "test_ids": test_ids,
+        "code_ids": code_ids,
+        "i_test": 0,
+        "i_code": 0,
+        "score_test": 0.0,
+        "score_code": 0.0,
+        "answers": [],
+        "start_ts": time(),
+    }
+
+async def _exam_send_current(update, context):
+    """
+    Sends the current step of the exam.
+    - Test phase: EDIT the existing message (keeps the flow compact).
+    - Code phase: POST a NEW message (so the conversation shows the latest
+      code exercise at the bottom and doesn't hide previous messages).
+    """
+    exam = context.user_data.get("exam", {})
+    query = getattr(update, "callback_query", None)
+
+    #test phase
+    if exam.get("phase") == "test":
+        i = exam["i_test"]
+        if i < len(exam["test_ids"]):
+            ex_id = exam["test_ids"][i]
+
+            # Load the exercise from DB
+            with SessionLocal() as session:
+                ex = session.query(Exercise).filter(Exercise.id == ex_id).one_or_none()
+
+            # If something went wrong, skip to next one
+            if not ex:
+                exam["i_test"] += 1
+                await _exam_send_current(update, context)
+                return
+
+            # Parse options from whatever format is stored in DB
+            opts, correct_idx, correct_text = _parse_test_options_from_exercise(ex)
+
+            # If there are no options, offer "continue" to skip it
+            if not opts:
+                if query and query.message:
+                    await _safe_edit(
+                        query.message,
+                        text="⚠️ Esta pregunta no tiene opciones configuradas. La saltaremos.",
+                        reply_markup=InlineKeyboardMarkup(
+                            [[InlineKeyboardButton("Continuar", callback_data="exam_answer_0")]]
+                        ),
+                    )
+                else:
+                    # Fallback: new message (very rare here)
+                    await context.bot.send_message(
+                        chat_id=update.effective_chat.id,
+                        text="⚠️ Esta pregunta no tiene opciones configuradas. La saltaremos.",
+                        reply_markup=InlineKeyboardMarkup(
+                            [[InlineKeyboardButton("Continuar", callback_data="exam_answer_0")]]
+                        ),
+                    )
+                return
+
+            # Save state to check the answer later
+            exam["current_test_options"] = opts
+            exam["current_test_correct_idx"] = correct_idx
+            exam["current_test_correct_text"] = correct_text
+
+            # Build keyboard: one option per row
+            rows = [
+                [InlineKeyboardButton(opt, callback_data=f"exam_answer_{idx}")]
+                for idx, opt in enumerate(opts)
+            ]
+            rows.append([InlineKeyboardButton("❌ Cancelar examen", callback_data="exam_cancel")])
+
+            # edit the current message in test phase
+            if query and query.message:
+                await _safe_edit(
+                    query.message,
+                    text=f"🧪 <b>Examen</b> — Test {i+1}/{len(exam['test_ids'])}\n\n<b>{ex.question}</b>",
+                    parse_mode="HTML",
+                    reply_markup=InlineKeyboardMarkup(rows),
+                )
+            else:
+                # Fallback: post new message if there is no message to edit
+                await context.bot.send_message(
+                    chat_id=update.effective_chat.id,
+                    text=f"🧪 <b>Examen</b> — Test {i+1}/{len(exam['test_ids'])}\n\n<b>{ex.question}</b>",
+                    parse_mode="HTML",
+                    reply_markup=InlineKeyboardMarkup(rows),
+                )
+            return
+        else:
+            # Switch to code phase
+            exam["phase"] = "code"
+            exam["i_code"] = 0
+
+    #code phase
+    if exam.get("phase") == "code":
+        j = exam["i_code"]
+        if j < len(exam["code_ids"]):
+            ex_id = exam["code_ids"][j]
+
+            # Load the exercise from DB
+            with SessionLocal() as session:
+                ex = session.query(Exercise).filter(Exercise.id == ex_id).one_or_none()
+
+            # If missing, jump to the next one
+            if not ex:
+                exam["i_code"] += 1
+                await _exam_send_current(update, context)
+                return
+
+            # Prepare state for code solving (no hints/solution during exam)
+            context.user_data["current_exercise_id"] = ex.id
+            context.user_data["awaiting_code"] = True
+            context.user_data["exam"] = exam  # persist changes
+
+            text = (
+                f"🧪 <b>Examen</b> — Programación {j+1}/{len(exam['code_ids'])}\n\n"
+                f"<b>Enunciado:</b> {escape(ex.question)}\n\n"
+                "Pega tu solución como <b>texto</b>. Cuando la reciba, aparecerán "
+                "los botones <b>Enviar</b> y <b>Reintentar</b>.\n"
+                "Durante el examen no hay <i>pistas</i> ni <i>solución</i>."
+            )
+            kb = InlineKeyboardMarkup(
+                [[InlineKeyboardButton("❌ Cancelar examen", callback_data="exam_cancel")]]
+            )
+
+            #In code phase we send a new message
+            chat_id = update.effective_chat.id if update.effective_chat else query.message.chat_id
+            await context.bot.send_message(
+                chat_id=chat_id,
+                text=text,
+                parse_mode="HTML",
+                reply_markup=kb,
+                disable_web_page_preview=True,
+            )
+            return
+        else:
+            await _exam_finish(update, context)
+            return
+
+
+async def _exam_finish(update, context):
+    """Send the final exam result as a NEW message (do not edit previous one)."""
+    exam = context.user_data.get("exam", {})
+    exam["active"] = False
+
+    # Compute final score
+    total = round(exam.get("score_test", 0.0) + exam.get("score_code", 0.0), 2)
+
+    # Build result text
+    msg = (
+        "🎉 <b>Examen finalizado</b>\n\n"
+        f"🧮 Puntuación: <b>{total:.2f} / 10</b>\n"
+        f"   • Test: {exam.get('score_test', 0.0):.2f} / 5\n"
+        f"   • Programación: {exam.get('score_code', 0.0):.2f} / 5\n\n"
+        f"Ámbito: <b>{escape(exam.get('topic',''))}</b>"
+    )
+
+    # Simple keyboard to return to main menu
+    kb = InlineKeyboardMarkup(
+        [[InlineKeyboardButton("⬅ Volver al menú", callback_data="main_menu")]]
+    )
+
+    # Use effective_chat.id so it works whether we came from a callback or from a message
+    chat_id = update.effective_chat.id
+    await context.bot.send_message(
+        chat_id=chat_id,
+        text=msg,
+        parse_mode="HTML",
+        reply_markup=kb
+    )
+
+    # Clear transient code/exam state after sending the result
+    for k in ("awaiting_code", "current_exercise_id", "last_code"):
+        context.user_data.pop(k, None)
+
+
+async def _safe_edit(message, *, text, reply_markup=None, parse_mode=None, disable_web_page_preview=False):
+    try:
+        await message.edit_text(
+            text,
+            reply_markup=reply_markup,
+            parse_mode=parse_mode,
+            disable_web_page_preview=disable_web_page_preview
+        )
+    except BadRequest as e:
+        if "Message is not modified" in str(e):
+            # Send it as a new message if there are no actual changes
+            await message.chat.send_message(
+                text,
+                reply_markup=reply_markup,
+                parse_mode=parse_mode,
+                disable_web_page_preview=disable_web_page_preview
+            )
+        else:
+            raise
+
+def _parse_test_options_from_exercise(ex):
+    """
+    Devuelve (opts, correct_idx, correct_text) aceptando varios formatos:
+    - ex.options_json = {"options": [...], "correct_idx": int?, "answer": str?}
+    - ex.options = list[str]
+    - ex.options = str (JSON o texto con '|' o saltos de línea)
+    - ex.answer / ex.correct_answer como texto de la opción correcta
+    """
+    opts, correct_idx, correct_text = [], None, None
+
+    # JSON standart if exists
+    data = getattr(ex, "options_json", None)
+    if isinstance(data, dict) and data.get("options"):
+        opts = [str(o) for o in (data.get("options") or [])]
+        if "correct_idx" in data and isinstance(data["correct_idx"], int):
+            correct_idx = data["correct_idx"]
+        if "answer" in data and data["answer"] is not None:
+            correct_text = str(data["answer"])
+
+    # field options
+    raw = getattr(ex, "options", None)
+    if not opts and raw is not None:
+        if isinstance(raw, list):
+            opts = [str(o) for o in raw]
+        elif isinstance(raw, str):
+            s = raw.strip()
+            # try JSON
+            try:
+                loaded = json.loads(s)
+                if isinstance(loaded, list):
+                    opts = [str(o) for o in loaded]
+                elif isinstance(loaded, dict) and "options" in loaded:
+                    opts = [str(o) for o in loaded["options"]]
+                    if "correct_idx" in loaded and isinstance(loaded["correct_idx"], int):
+                        correct_idx = loaded["correct_idx"]
+                    if "answer" in loaded and loaded["answer"] is not None:
+                        correct_text = str(loaded["answer"])
+            except Exception:
+                # fallback by separators
+                if "|" in s:
+                    opts = [x.strip() for x in s.split("|") if x.strip()]
+                else:
+                    opts = [x.strip() for x in s.splitlines() if x.strip()]
+        else:
+            # unknow type 
+            opts = [str(raw)]
+
+    #answer text correct from the model
+    if correct_text is None:
+        correct_text = (getattr(ex, "answer", None) 
+                        or getattr(ex, "correct_answer", None))
+        if correct_text is not None:
+            correct_text = str(correct_text)
+
+    # if we have the correct text, calculate the index if there is in options
+    if correct_idx is None and correct_text is not None and opts:
+        try:
+            correct_idx = next(i for i, o in enumerate(opts) if o == correct_text)
+        except StopIteration:
+            pass
+
+    return opts, correct_idx, correct_text
+
+# Accept fenced code ```cpp ... ``` or plain C++-looking text
+CODE_FENCE_RE = re.compile(
+    r"```(?:cpp|c\+\+)?\s*\n([\s\S]*?)\n?```",  # nota: \n? antes de ```
+    re.IGNORECASE
+)
+
+CPP_SMELLS = (
+    "#include", "int main", "using namespace", "::", "std::", ";", "{", "}"
+)
+
+def _extract_code_block(text: str) -> str | None:
+    if not text:
+        return None
+    #block ```cpp ... ```
+    m = CODE_FENCE_RE.search(text)
+    if m:
+        return m.group(1).strip()
+
+    #plain text
+    s = text.strip()
+    multiline = ("\n" in s) or (s.count(";") >= 2) or ("{" in s and "}" in s)
+    if multiline and any(tok in s for tok in CPP_SMELLS):
+        return s
+
+    return None

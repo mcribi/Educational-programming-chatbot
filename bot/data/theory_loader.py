@@ -9,8 +9,10 @@ TOPIC_NAMES = {
     "conditional": "Condicionales",
     "loops": "Bucles",
     "functions": "Funciones",
-    "input_output": "Entrada y salida",
-    "vectors": "Vectores"
+    "structures": "Registros", 
+    "vectors": "Vectores", 
+    "matrix": "Matrices", 
+    "class": "Clases"
 }
 
 def load_theory():

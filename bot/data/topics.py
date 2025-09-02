@@ -4,6 +4,8 @@ cpp_topics = [
     "Condicionales",
     "Bucles",
     "Funciones",
-    "Entrada y salida",
-    "Vectores"
+    "Registros",
+    "Vectores", 
+    "Matrices", 
+    "Clases"
 ]

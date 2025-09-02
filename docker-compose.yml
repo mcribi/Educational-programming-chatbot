@@ -16,48 +16,48 @@ services:
     networks:
       - appnet
 
-  redis:
-    image: redis:7
-    container_name: judge0_redis
-    restart: always
-    networks:
-      - appnet
+  # redis:
+  #   image: redis:7
+  #   container_name: judge0_redis
+  #   restart: always
+  #   networks:
+  #     - appnet
 
-  judge0:
-    image: judge0/judge0:latest
-    container_name: judge0
-    restart: always
-    environment:
-      JUDGE0_USE_WORKERS: "true"
-      JUDGE0_WORKERS: "2"
-      DEFAULT_MAX_STDOUT_SIZE: "32768"
-      DEFAULT_MAX_STDERR_SIZE: "16384"
-      DEFAULT_MEMORY_LIMIT: "67108864"
-      DEFAULT_TIME_LIMIT: "1.5"
-      DEFAULT_WALL_TIME_LIMIT: "3"
-      DEFAULT_MAX_PROCESSES_AND_OR_THREADS: "0"
-      REDIS_HOST: "redis"
-    ports:
-      - "2358:2358"
-    depends_on:
-      - redis
-    networks:
-      - appnet
+  # judge0:
+  #   image: judge0/judge0:latest
+  #   container_name: judge0
+  #   restart: always
+  #   environment:
+  #     JUDGE0_USE_WORKERS: "true"
+  #     JUDGE0_WORKERS: "2"
+  #     DEFAULT_MAX_STDOUT_SIZE: "32768"
+  #     DEFAULT_MAX_STDERR_SIZE: "16384"
+  #     DEFAULT_MEMORY_LIMIT: "67108864"
+  #     DEFAULT_TIME_LIMIT: "1.5"
+  #     DEFAULT_WALL_TIME_LIMIT: "3"
+  #     DEFAULT_MAX_PROCESSES_AND_OR_THREADS: "0"
+  #     REDIS_HOST: "redis"
+  #   ports:
+  #     - "2358:2358"
+  #   depends_on:
+  #     - redis
+  #   networks:
+  #     - appnet
 
-  judge0_workers:
-    image: judge0/judge0:latest
-    container_name: judge0_workers
-    restart: always
-    command: ["./scripts/workers"]
-    environment:
-      JUDGE0_USE_WORKERS: "true"
-      JUDGE0_WORKERS: "2"
-      REDIS_HOST: "redis"
-    depends_on:
-      - judge0
-      - redis
-    networks:
-      - appnet
+  # judge0_workers:
+  #   image: judge0/judge0:latest
+  #   container_name: judge0_workers
+  #   restart: always
+  #   command: ["./scripts/workers"]
+  #   environment:
+  #     JUDGE0_USE_WORKERS: "true"
+  #     JUDGE0_WORKERS: "2"
+  #     REDIS_HOST: "redis"
+  #   depends_on:
+  #     - judge0
+  #     - redis
+  #   networks:
+  #     - appnet
 
   runner:
     build: ./runner
@@ -86,8 +86,8 @@ services:
     depends_on:
       - db
       - runner
-      - judge0
-      - judge0_workers
+      #- judge0
+      #- judge0_workers
     env_file:
       - .env
     environment:
@@ -98,6 +98,7 @@ services:
       RUN_MEMORY_LIMIT_MB: "64"
       RUN_OUTPUT_LIMIT_B: "32768"
       RUNNER_URL: "http://runner:8000"   
+      ADMIN_CHAT_ID: "1380174278"
     networks:
       - appnet
 

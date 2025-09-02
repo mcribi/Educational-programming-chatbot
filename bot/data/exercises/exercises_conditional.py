@@ -56,7 +56,7 @@ exercises_conditional = [
     ),
 
     Exercise(
-        type_="code",
+        type_="test",
         question=(
             "¿Qué imprime el siguiente código?\n"
             "<pre><code>int x = 7;\n"
@@ -72,7 +72,7 @@ exercises_conditional = [
     ),
 
     Exercise(
-        type_="code",
+        type_="test",
         question=(
             "¿Qué se muestra por pantalla?\n"
             "<pre><code>int x = 3, y = 5;\n"
@@ -86,7 +86,7 @@ exercises_conditional = [
     ),
 
     Exercise(
-        type_="code",
+        type_="test",
         question=(
             "¿Qué resultado muestra el siguiente código?\n"
             "<pre><code>int edad = 17;\n"
@@ -103,7 +103,7 @@ exercises_conditional = [
     ),
 
     Exercise(
-        type_="code",
+        type_="test",
         question=(
             "¿Qué imprimirá este programa?\n"
             "<pre><code>int nota = 8;\n"
@@ -129,7 +129,7 @@ exercises_conditional = [
     ),
 
     Exercise(
-        type_="code",
+        type_="test",
         question=(
             "¿Cuál es el error de este código?\n"
             "<pre><code>int edad;\n"
@@ -156,7 +156,7 @@ exercises_conditional = [
     ),
 
     Exercise(
-        type_="code",
+        type_="test",
         question=(
             "¿Qué muestra el siguiente código?\n"
             "<pre><code>int x = 5;\n"
@@ -171,7 +171,7 @@ exercises_conditional = [
     ),
 
     Exercise(
-        type_="code",
+        type_="test",
         question=(
             "¿Qué imprimirá este código?\n"
             "<pre><code>int dia = 2;\n"
@@ -216,7 +216,7 @@ exercises_conditional = [
     ),
 
     Exercise(
-        type_="code",
+        type_="test",
         question=(
             "¿Qué muestra este código?\n"
             "<pre><code>int a = 5;\n"
@@ -276,7 +276,7 @@ exercises_conditional = [
     ),
 
     Exercise(
-        type_="code",
+        type_="test",
         question=(
             "¿Qué imprime este código?\n"
             "<pre><code>int edad = 18;\n"
@@ -292,7 +292,7 @@ exercises_conditional = [
     ),
 
     Exercise(
-        type_="code",
+        type_="test",
         question=(
             "¿Qué muestra el siguiente código?\n"
             "<pre><code>int x = 2;\n"
@@ -330,7 +330,7 @@ exercises_conditional = [
     ),
 
     Exercise(
-        type_="code",
+        type_="test",
         question=(
             "¿Qué resultado produce este código?\n"
             "<pre><code>int temp = 30;\n"
@@ -363,7 +363,7 @@ exercises_conditional = [
     ),
 
     Exercise(
-        type_="code",
+        type_="test",
         question=(
             "¿Qué imprime este código?\n"
             "<pre><code>int a = 3;\n"
@@ -380,7 +380,7 @@ exercises_conditional = [
     ),
 
     Exercise(
-        type_="code",
+        type_="test",
         question=(
             "¿Cuál es el resultado?\n"
             "<pre><code>int n = -5;\n"
@@ -414,7 +414,7 @@ exercises_conditional = [
     ),
 
     Exercise(
-        type_="code",
+        type_="test",
         question=(
             "¿Cuál es el resultado?\n"
             "<pre><code>int x = 1;\n"
@@ -438,7 +438,7 @@ exercises_conditional = [
     ),
 
     Exercise(
-        type_="code",
+        type_="test",
         question=(
             "¿Qué se imprime?\n"
             "<pre><code>int valor = 5;\n"

@@ -43,8 +43,9 @@ class RunTestsRequest(BaseModel):
     tests: List[RunTest]
     time_limit_ms: int = 1500
     memory_limit_mb: int = 128
-    checker: str = "normalized"   # "exact" | "normalized" | "float"
+    checker: str = "normalized"   # "exact" | "normalized" | "float" | "ignore_trailing_newlines" | "ignore_trailing_whitespace"
     float_tol: Optional[float] = None
+
 
 # ---------- Helpers ----------
 def extract_cpp(code: str) -> str:
@@ -69,14 +70,37 @@ def _normalize(s: str) -> str:
     lines = [(" ".join(line.rstrip().split())) for line in s.splitlines()]
     return ("\n".join(lines).rstrip() + ("\n" if s.endswith("\n") else "")) if s else s
 
+def _normalize_crlf(s: str) -> str:
+    """Normalises line endings to LF."""
+    return s.replace("\r\n", "\n").replace("\r", "\n")
+
+def _strip_eof_newlines(s: str) -> str:
+    """Remove ONLY trailing line breaks (one or more)."""
+    s = _normalize_crlf(s)
+    while s.endswith("\n"):
+        s = s[:-1]
+    return s
+
+def _strip_eof_whitespace(s: str) -> str:
+    """Remove any ENDING whitespace (including \n, spaces, tabs)."""
+    return _normalize_crlf(s).rstrip()
+
+def _normalize(s: str) -> str:
+    """Collapse internal spaces by line. Maintains the previous logic, but with normalised CRLF."""
+    s = _normalize_crlf(s)
+    lines = [(" ".join(line.rstrip().split())) for line in s.splitlines()]
+    return ("\n".join(lines).rstrip() + ("\n" if s.endswith("\n") else "")) if s else s
+
+
 def _compare(out: str, exp: str, checker: str, tol: Optional[float]):
     """Compare outputs according to checker strategy."""
     if checker == "exact":
-        ok = (out == exp)
+        ok = (_normalize_crlf(out) == _normalize_crlf(exp))
         diff = None if ok else f"Esperado:\n{exp}\nObtenido:\n{out}"
         return ok, diff
+
     elif checker == "float":
-        def toks(x): return [t for t in x.strip().split()]
+        def toks(x): return [t for t in _normalize_crlf(x).strip().split()]
         ao, ae = toks(out), toks(exp)
         if len(ao) != len(ae):
             return False, f"Tokens distintos: esperado {len(ae)}, obtenido {len(ao)}"
@@ -89,11 +113,27 @@ def _compare(out: str, exp: str, checker: str, tol: Optional[float]):
                 if x != y:
                     return False, f"Token {i}: esperado {y}, obtenido {x}"
         return True, None
-    else:  # normalized
+
+    elif checker == "ignore_trailing_newlines":
+        no = _strip_eof_newlines(out)
+        ne = _strip_eof_newlines(exp)
+        ok = (no == ne)
+        diff = None if ok else f"Esperado(sin NL final):\n{ne}\nObtenido(sin NL final):\n{no}"
+        return ok, diff
+
+    elif checker == "ignore_trailing_whitespace":
+        no = _strip_eof_whitespace(out)
+        ne = _strip_eof_whitespace(exp)
+        ok = (no == ne)
+        diff = None if ok else f"Esperado(sin espacio final):\n{ne}\nObtenido(sin espacio final):\n{no}"
+        return ok, diff
+
+    else:  # "normalized"
         no, ne = _normalize(out), _normalize(exp)
         ok = (no == ne)
         diff = None if ok else f"Esperado(normalizado):\n{ne}\nObtenido(normalizado):\n{no}"
         return ok, diff
+
 
 # ---------- /run (single run, no tests) ----------
 @api.post("/run")

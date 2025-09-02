@@ -304,16 +304,35 @@ async def cmd_run(update: Update, context: ContextTypes.DEFAULT_TYPE):
         run_log=first_fail_detail or "",
     )
 
+# helper to get a valid reply target (works with messages and callbacks)
+def _reply_target(update):
+    if getattr(update, "message", None):
+        return update.message
+    if getattr(update, "callback_query", None) and update.callback_query.message:
+        return update.callback_query.message
+    return None
+
 # /submit: run sample + hidden; accept on all pass or same_code with solution
 async def cmd_submit(update: Update, context: ContextTypes.DEFAULT_TYPE):
     """Run full test suite (sample + hidden)."""
+
+    msg = _reply_target(update)
+
     if CODE_KEY not in context.user_data:
-        await update.message.reply_text("Primero envía tu solución en un bloque ```cpp ... ```.", parse_mode="Markdown")
+        text = "Primero envía tu solución en un bloque ```cpp ... ```."
+        if msg:
+            await msg.reply_text(text, parse_mode="Markdown")
+        else:
+            await context.bot.send_message(chat_id=update.effective_chat.id, text=text, parse_mode="Markdown")
         return
 
     ex, sample, hidden = get_exercise_and_tests(context)
     if not ex:
-        await update.message.reply_text("Selecciona primero un ejercicio de programación.")
+        text = "Selecciona primero un ejercicio de programación."
+        if msg:
+            await msg.reply_text(text)
+        else:
+            await context.bot.send_message(chat_id=update.effective_chat.id, text=text)
         return
 
     tests = sample + hidden
@@ -331,7 +350,11 @@ async def cmd_submit(update: Update, context: ContextTypes.DEFAULT_TYPE):
     # Compilation error
     if res.get("status") == "CE":
         log = res.get("compile_log", "")
-        await update.message.reply_text(f"❌ Error de compilación\n```\n{log}\n```", parse_mode="Markdown")
+        text = f"❌ Error de compilación\n```\n{log}\n```"
+        if msg:
+            await msg.reply_text(text, parse_mode="Markdown")
+        else:
+            await context.bot.send_message(chat_id=update.effective_chat.id, text=text, parse_mode="Markdown")
         save_attempt(
             telegram_id=update.effective_user.id,
             exercise_id=ex.id,
@@ -348,7 +371,11 @@ async def cmd_submit(update: Update, context: ContextTypes.DEFAULT_TYPE):
     accepted = (passed == total) or (ex.solution_code and same_code(code, ex.solution_code))
 
     if accepted:
-        await update.message.reply_text(f"✅ ¡Aceptado! Pasaste {passed}/{total} casos.")
+        text = f"✅ ¡Aceptado! Pasaste {passed}/{total} casos."
+        if msg:
+            await msg.reply_text(text)
+        else:
+            await context.bot.send_message(chat_id=update.effective_chat.id, text=text)
         save_attempt(
             telegram_id=update.effective_user.id,
             exercise_id=ex.id,
@@ -358,11 +385,10 @@ async def cmd_submit(update: Update, context: ContextTypes.DEFAULT_TYPE):
             total=total,
             is_correct=True,
         )
-        # If you track progress, you could mark exercise as completed here.
         return
 
     # Not accepted: report first failing case
-    msg = f"❌ No aceptado. Pasaste {passed}/{total}.\n"
+    text = f"❌ No aceptado. Pasaste {passed}/{total}.\n"
     first_fail_detail = None
     for c in res.get("cases", []):
         if c["status"] != "AC":
@@ -371,12 +397,15 @@ async def cmd_submit(update: Update, context: ContextTypes.DEFAULT_TYPE):
             elif c["status"] == "RE":
                 first_fail_detail = f"Caso {c['i']+1}: Runtime Error\n```\n{c.get('stderr','')}\n```"
             elif c["status"] == "TLE":
-                first_fail_detail = "Caso {i}: Time Limit Exceeded"
+                first_fail_detail = f"Caso {c['i']+1}: Time Limit Exceeded"
             break
     if first_fail_detail:
-        msg += first_fail_detail
+        text += first_fail_detail
 
-    await update.message.reply_text(msg, parse_mode="Markdown")
+    if msg:
+        await msg.reply_text(text, parse_mode="Markdown")
+    else:
+        await context.bot.send_message(chat_id=update.effective_chat.id, text=text, parse_mode="Markdown")
 
     save_attempt(
         telegram_id=update.effective_user.id,
@@ -389,9 +418,14 @@ async def cmd_submit(update: Update, context: ContextTypes.DEFAULT_TYPE):
         run_log=first_fail_detail or "",
     )
 
+
 # /solution: show official solution (and save attempt as SOLUTION)
 async def cmd_solution(update: Update, context: ContextTypes.DEFAULT_TYPE):
     """Show official solution if available and mark attempt as SOLUTION."""
+    if context.user_data.get("exam", {}).get("active"):
+        await update.message.reply_text("⛔ Durante el examen no hay pistas ni solución.")
+        return
+
     ex, _, _ = get_exercise_and_tests(context)
     if not ex or not ex.solution_code:
         await update.message.reply_text("No hay solución disponible para este ejercicio.")
@@ -413,6 +447,10 @@ async def cmd_solution(update: Update, context: ContextTypes.DEFAULT_TYPE):
 # /hint: send single hint if provided
 async def cmd_hint(update: Update, context: ContextTypes.DEFAULT_TYPE):
     """Send single hint if the exercise has one."""
+    if context.user_data.get("exam", {}).get("active"):
+        await update.message.reply_text("⛔ Durante el examen no hay pistas ni solución.")
+        return
+
     ex, _, _ = get_exercise_and_tests(context)
     if not ex or not ex.hint:
         await update.message.reply_text("No hay pista para este ejercicio.")

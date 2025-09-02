@@ -240,80 +240,290 @@ exercises_introduction = [
         answer="35",
         explanation="Se imprimen los números 3 y 5 uno tras otro, sin espacio entre ellos."
     ),
-
-    #exercises of code
-    # Exercise(
-    #     type_="code",
-    #     question="Escribe un programa en C++ que imprima exactamente el texto:\nHola Mundo",
-    #     stdin="",
-    #     expected_stdout="Hola Mundo\n",
-    #     explanation="El primer programa clásico: usar cout para mostrar un mensaje fijo."
-    # ),
-    # Exercise(
-    #     type_="code",
-    #     question="Lee dos enteros desde la entrada estándar y muestra su suma.",
-    #     stdin="3 7\n",
-    #     expected_stdout="10\n",
-    #     explanation="El programa debe leer dos números y sumarlos con el operador '+'."
-    # ),
-    # Exercise(
-    #     type_="code",
-    #     question="Lee la base y la altura de un rectángulo e imprime su área (base * altura).",
-    #     stdin="5 4\n",
-    #     expected_stdout="20\n",
-    #     explanation="Multiplica base por altura y muestra el resultado."
-    # ),
-    # Exercise(
-    #     type_="code",
-    #     question="Lee un número entero y muestra 'PAR' si es par o 'IMPAR' si es impar.",
-    #     stdin="9\n",
-    #     expected_stdout="IMPAR\n",
-    #     explanation="Usa el operador módulo (% 2) para comprobar el resto."
-    # ),
-    # Exercise(
-    #     type_="code",
-    #     question="Lee un número entero de minutos y conviértelo a horas y minutos.\nPor ejemplo, si la entrada es 130, la salida debe ser '2 10'.",
-    #     stdin="130\n",
-    #     expected_stdout="2 10\n",
-    #     explanation="Divide entre 60 para obtener horas y usa el resto para los minutos."
-    # ),
     Exercise(
         type_="code",
-        question="Imprime exactamente: Hola Mundo",
+        question="Lee un nombre y muestra 'Hola, <nombre>'.",
         tests_json={
-            "sample": [{"input": "", "output": "Hola Mundo\n"}],
-            "hidden": []
+            "sample": [{"input": "Maria\n", "output": "Hola, Maria"}],
+            "hidden": [
+                {"input": "Juan\n", "output": "Hola, Juan"},
+                {"input": "C++\n", "output": "Hola, C++"}
+            ]
         },
-        hint="Recuerda el salto de línea final.",
+        hint="Usa getline para admitir espacios. El verificador ignora un salto de línea FINAL si lo añades.",
         solution_code=(
-            '#include <bits/stdc++.h>\nusing namespace std;\n'
-            'int main(){ cout<<"Hola Mundo\\n"; }\n'
+            '#include <iostream>\nusing namespace std;\n'
+            'int main(){ string s; getline(cin, s); cout << "Hola, " << s; }\n'
         ),
-        checker="exact",
+        checker="ignore_trailing_newlines",
         time_limit_ms=1000,
         memory_limit_mb=64,
     ),
+
     Exercise(
         type_="code",
         question="Lee dos enteros y muestra su suma.",
         tests_json={
-            "sample": [{"input":"3 7\n","output":"10\n"}],
+            "sample": [{"input": "7 5\n", "output": "12"}],
             "hidden": [
-                {"input":"1 2\n","output":"3\n"},
-                {"input":"-5 8\n","output":"3\n"}
+                {"input": "-3 10\n", "output": "7"},
+                {"input": "0 0\n", "output": "0"}
             ]
         },
-        hint="Usa tipos enteros y termina con \\n.",
+        hint="Lee con cin dos enteros y súmalos. El salto de línea final es opcional para el verificador.",
         solution_code=(
-            '#include <bits/stdc++.h>\nusing namespace std;\n'
-            'int main(){ ios::sync_with_stdio(false); cin.tie(nullptr);\n'
-            'long long a,b; if(!(cin>>a>>b)) return 0; cout<<a+b<<\"\\n\"; }\n'
+            '#include <iostream>\nusing namespace std;\n'
+            'int main(){ long long a,b; if(!(cin>>a>>b)) return 0; cout<<a+b; }\n'
         ),
-        checker="normalized",
-        time_limit_ms=1500,
-        memory_limit_mb=128,
+        checker="ignore_trailing_newlines",
+        time_limit_ms=1000,
+        memory_limit_mb=64,
     ),
 
+    Exercise(
+        type_="code",
+        question="Lee dos enteros y muestra su producto.",
+        tests_json={
+            "sample": [{"input": "4 5\n", "output": "20"}],
+            "hidden": [
+                {"input": "-3 6\n", "output": "-18"},
+                {"input": "1000 0\n", "output": "0"}
+            ]
+        },
+        hint="Multiplica los dos enteros. El verificador tolera el salto de línea FINAL.",
+        solution_code=(
+            '#include <iostream>\nusing namespace std;\n'
+            'int main(){ long long a,b; cin>>a>>b; cout<<(a*b); }\n'
+        ),
+        checker="ignore_trailing_newlines",
+        time_limit_ms=1000,
+        memory_limit_mb=64,
+    ),
+
+    Exercise(
+        type_="code",
+        question="Lee un entero y muestra su cuadrado.",
+        tests_json={
+            "sample": [{"input": "5\n", "output": "25"}],
+            "hidden": [
+                {"input": "-3\n", "output": "9"},
+                {"input": "12\n", "output": "144"}
+            ]
+        },
+        hint="x*x es suficiente; no necesitas pow. (Salto de línea final opcional para el verificador.)",
+        solution_code=(
+            '#include <iostream>\nusing namespace std;\n'
+            'int main(){ long long x; cin>>x; cout<<x*x; }\n'
+        ),
+        checker="ignore_trailing_newlines",
+        time_limit_ms=1000,
+        memory_limit_mb=64,
+    ),
+
+    Exercise(
+        type_="code",
+        question="Lee un ancho y un alto (enteros) y muestra el área del rectángulo.",
+        tests_json={
+            "sample": [{"input": "3 4\n", "output": "12"}],
+            "hidden": [
+                {"input": "7 1\n", "output": "7"},
+                {"input": "0 5\n", "output": "0"}
+            ]
+        },
+        hint="Multiplica ancho*alto (usa enteros grandes por seguridad). El salto final es opcional.",
+        solution_code=(
+            '#include <iostream>\nusing namespace std;\n'
+            'int main(){ long long w,h; cin>>w>>h; cout<<w*h; }\n'
+        ),
+        checker="ignore_trailing_newlines",
+        time_limit_ms=1000,
+        memory_limit_mb=64,
+    ),
+
+    Exercise(
+        type_="code",
+        question="Lee un entero y muestra el anterior y el siguiente en líneas separadas (primero el anterior).",
+        tests_json={
+            "sample": [{"input": "10\n", "output": "9\n11"}],
+            "hidden": [
+                {"input": "0\n", "output": "-1\n1"},
+                {"input": "-5\n", "output": "-6\n-4"}
+            ]
+        },
+        hint="Imprime x-1 y x+1 en dos líneas. El verificador solo ignora un salto de línea FINAL tras la segunda línea.",
+        solution_code=(
+            '#include <iostream>\nusing namespace std;\n'
+            'int main(){ long long x; cin>>x; cout<<x-1<<"\\n"<<x+1; }\n'
+        ),
+        checker="ignore_trailing_newlines",
+        time_limit_ms=1000,
+        memory_limit_mb=64,
+    ),
+
+    Exercise(
+        type_="code",
+        question="Lee un número real (double) y muestra su raíz cuadrada con 6 decimales.",
+        tests_json={
+            "sample": [{"input": "9\n", "output": "3.000000"}],
+            "hidden": [
+                {"input": "2\n", "output": "1.414214"},
+                {"input": "0\n", "output": "0.000000"}
+            ]
+        },
+        hint="Incluye <cmath> y <iomanip>; usa sqrt y fixed+setprecision(6). El salto final es opcional para el verificador.",
+        solution_code=(
+            '#include <iostream>\n#include <iomanip>\n#include <cmath>\nusing namespace std;\n'
+            'int main(){ ios::sync_with_stdio(false); cin.tie(nullptr);\n'
+            ' double x; cin>>x; cout.setf(ios::fixed); cout<<setprecision(6)<<sqrt(x); }\n'
+        ),
+        checker="ignore_trailing_newlines",
+        time_limit_ms=1000,
+        memory_limit_mb=64,
+    ),
+
+    Exercise(
+        type_="code",
+        question="Lee una temperatura en grados Celsius (double) y muestra su equivalente en Fahrenheit con 2 decimales.",
+        tests_json={
+            "sample": [{"input": "0\n", "output": "32.00"}],
+            "hidden": [
+                {"input": "100\n", "output": "212.00"},
+                {"input": "-40\n", "output": "-40.00"}
+            ]
+        },
+        hint="F = C * 9/5 + 32. Formatea con fixed+setprecision(2). El salto final es opcional.",
+        solution_code=(
+            '#include <iostream>\n#include <iomanip>\nusing namespace std;\n'
+            'int main(){ double c; cin>>c; double f = c*9.0/5.0 + 32.0;\n'
+            ' cout.setf(ios::fixed); cout<<setprecision(2)<<f; }\n'
+        ),
+        checker="ignore_trailing_newlines",
+        time_limit_ms=1000,
+        memory_limit_mb=64,
+    ),
+
+    Exercise(
+        type_="code",
+        question="Lee tres números reales y muestra su media aritmética con 3 decimales.",
+        tests_json={
+            "sample": [{"input": "3 4 5\n", "output": "4.000"}],
+            "hidden": [
+                {"input": "1 2 2\n", "output": "1.667"},
+                {"input": "-1 0 1\n", "output": "0.000"}
+            ]
+        },
+        hint="Usa double y (a+b+c)/3.0 con fixed+setprecision(3). El salto de línea final es opcional.",
+        solution_code=(
+            '#include <iostream>\n#include <iomanip>\nusing namespace std;\n'
+            'int main(){ double a,b,c; cin>>a>>b>>c; double m=(a+b+c)/3.0;\n'
+            ' cout.setf(ios::fixed); cout<<setprecision(3)<<m; }\n'
+        ),
+        checker="ignore_trailing_newlines",
+        time_limit_ms=1000,
+        memory_limit_mb=64,
+    ),
+
+    Exercise(
+        type_="code",
+        question="Lee una línea de texto y muestra 'Dijiste: <texto>'.",
+        tests_json={
+            "sample": [{"input": "Hola mundo\n", "output": "Dijiste: Hola mundo"}],
+            "hidden": [
+                {"input": "   espacios delante\n", "output": "Dijiste:    espacios delante"},
+                {"input": "C++ es genial\n", "output": "Dijiste: C++ es genial"}
+            ]
+        },
+        hint="Usa getline(cin, s) para capturar toda la línea (con espacios). El verificador ignora el salto FINAL.",
+        solution_code=(
+            '#include <iostream>\n#include <string>\nusing namespace std;\n'
+            'int main(){ string s; getline(cin, s); cout << "Dijiste: " << s; }\n'
+        ),
+        checker="ignore_trailing_newlines",
+        time_limit_ms=1000,
+        memory_limit_mb=64,
+    ),
+
+    Exercise(
+        type_="code",
+        question="Convierte un total de minutos (entero) a horas y minutos. Imprime en dos líneas: horas en la primera y minutos en la segunda.",
+        tests_json={
+            "sample": [{"input": "130\n", "output": "2\n10"}],
+            "hidden": [
+                {"input": "60\n", "output": "1\n0"},
+                {"input": "59\n", "output": "0\n59"}
+            ]
+        },
+        hint="Usa h=m/60 y r=m%60. El verificador solo ignora un salto de línea FINAL tras la 2ª línea.",
+        solution_code=(
+            '#include <iostream>\nusing namespace std;\n'
+            'int main(){ long long m; cin>>m; cout<<(m/60)<<"\\n"<<(m%60); }\n'
+        ),
+        checker="ignore_trailing_newlines",
+        time_limit_ms=1000,
+        memory_limit_mb=64,
+    ),
+
+    Exercise(
+        type_="code",
+        question="Lee el radio de un círculo (double) y muestra su área con 6 decimales. Usa π = 3.141592653589793.",
+        tests_json={
+            "sample": [{"input": "1\n", "output": "3.141593"}],
+            "hidden": [
+                {"input": "0\n", "output": "0.000000"},
+                {"input": "2.5\n", "output": "19.634955"}
+            ]
+        },
+        hint="Área = π * r * r. Usa fixed+setprecision(6). El salto final es opcional para el verificador.",
+        solution_code=(
+            '#include <iostream>\n#include <iomanip>\nusing namespace std;\n'
+            'int main(){ const double PI=3.141592653589793; double r; cin>>r;\n'
+            ' cout.setf(ios::fixed); cout<<setprecision(6)<<(PI*r*r); }\n'
+        ),
+        checker="ignore_trailing_newlines",
+        time_limit_ms=1000,
+        memory_limit_mb=64,
+    ),
+
+    Exercise(
+        type_="code",
+        question="Lee nombre y apellido (dos palabras) y muestra 'Nombre completo: <nombre> <apellido>'.",
+        tests_json={
+            "sample": [{"input": "Ada Lovelace\n", "output": "Nombre completo: Ada Lovelace"}],
+            "hidden": [
+                {"input": "Alan Turing\n", "output": "Nombre completo: Alan Turing"},
+                {"input": "Marie Curie\n", "output": "Nombre completo: Marie Curie"}
+            ]
+        },
+        hint="Lee dos strings con cin (separados por espacio). El salto de línea final es opcional.",
+        solution_code=(
+            '#include <iostream>\nusing namespace std;\n'
+            'int main(){ string nombre, apellido; cin>>nombre>>apellido;\n'
+            ' cout<<"Nombre completo: "<<nombre<<" "<<apellido; }\n'
+        ),
+        checker="ignore_trailing_newlines",
+        time_limit_ms=1000,
+        memory_limit_mb=64,
+    ),
+
+    Exercise(
+        type_="code",
+        question="Lee un carácter y muestra su código ASCII como entero.",
+        tests_json={
+            "sample": [{"input": "A\n", "output": "65"}],
+            "hidden": [
+                {"input": "a\n", "output": "97"},
+                {"input": "0\n", "output": "48"}
+            ]
+        },
+        hint="Convierte el char a int al imprimir (promoción implícita). El salto de línea final es opcional.",
+        solution_code=(
+            '#include <iostream>\nusing namespace std;\n'
+            'int main(){ char c; cin>>c; cout<< (int)c; }\n'
+        ),
+        checker="ignore_trailing_newlines",
+        time_limit_ms=1000,
+        memory_limit_mb=64,
+    ),
 
     
 ]

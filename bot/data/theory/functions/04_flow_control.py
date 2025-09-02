@@ -16,7 +16,7 @@ lesson = Lesson(
         "int main() {\n"
         "    int n = 5;\n"
         "    int r = Doble(n); // Aquí el flujo pasa a la función\n"
-        "    cout << r;        // Al volver, imprime 10\n"
+        "    cout &lt;&lt; r;        // Al volver, imprime 10\n"
         "}</code></pre>\n\n"
         "👉 Esto permite dividir un programa en pasos más pequeños y fáciles de entender."
     )

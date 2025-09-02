@@ -4,9 +4,9 @@ lesson = Lesson(
     title="Estructura de una función",
     content=(
         "La definición de una función en C++ tiene esta forma:\n\n"
-        "<pre><code><tipo> <nombre>(<parámetros>) {\n"
-        "    <sentencias>\n"
-        "    return <valor>;\n"
+        "<pre><code>&lt;tipo&gt; &lt;nombre&gt;(&lt;parámetros&gt;) {\n"
+        "    &lt;sentencias&gt;\n"
+        "    return &lt;valor&gt;;\n"
         "}</code></pre>\n\n"
         "• <b>Tipo</b>: el tipo de dato que devuelve (ej. int, double, bool). Si no devuelve nada se usa <code>void</code>.\n"
         "• <b>Nombre</b>: identificador de la función.\n"

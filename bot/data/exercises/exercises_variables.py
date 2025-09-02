@@ -351,4 +351,358 @@ exercises_variables = [
         answer="7.5",
         explanation="El <code>int</code> se convierte automáticamente a <code>double</code> → 3 × 2.5 = 7.5"
     ),
+
+    #codeee
+
+    Exercise(
+        type_="code",
+        question="Lee un nombre (línea completa) y una edad (entero) y muestra: 'Edad de &lt;nombre&gt;: &lt;edad&gt;'.",
+        tests_json={
+            "sample": [{"input": "Ada Lovelace\n36\n", "output": "Edad de Ada Lovelace: 36"}],
+            "hidden": [
+                {"input": "Alan Turing\n41\n", "output": "Edad de Alan Turing: 41"},
+                {"input": "Grace Hopper\n85\n", "output": "Edad de Grace Hopper: 85"}
+            ]
+        },
+        hint="Primero getline para el nombre (con espacios), luego lee la edad con cin. El verificador tolera salto y espacios finales.",
+        solution_code=(
+            '#include <iostream>\n#include <string>\nusing namespace std;\n'
+            'int main(){ ios::sync_with_stdio(false); cin.tie(nullptr);\n'
+            ' string nombre; getline(cin, nombre); long long edad; cin >> edad; \n'
+            ' cout << "Edad de " << nombre << ": " << edad; }\n'
+        ),
+        checker="ignore_trailing_whitespace",
+        time_limit_ms=1000,
+        memory_limit_mb=64,
+    ),
+
+    Exercise(
+        type_="code",
+        question=("Lee dos enteros a y b y muestra en 5 líneas, en este orden: a+b, a-b, a*b, a/b (entera), a%b. "
+                  "La última línea no debe terminar con salto de línea."),
+        tests_json={
+            "sample": [{"input": "8 3\n", "output": "11\n5\n24\n2\n2"}],
+            "hidden": [
+                {"input": "25 9\n", "output": "34\n16\n225\n2\n7"},
+                {"input": "-7 5\n", "output": "-2\n-12\n-35\n-1\n-2"}
+            ]
+        },
+        hint="Usa + - * / % sobre enteros. División entera trunca hacia 0 (p. ej., -7/5 = -1). El verificador ignora SOLO el salto FINAL.",
+        solution_code=(
+            '#include <iostream>\nusing namespace std;\n'
+            'int main(){ long long a,b; if(!(cin>>a>>b)) return 0; \n'
+            ' cout<<(a+b)<<"\\n"<<(a-b)<<"\\n"<<(a*b)<<"\\n"<<(a/b)<<"\\n"<<(a%b); } \n'
+        ),
+        checker="ignore_trailing_newlines",
+        time_limit_ms=1000,
+        memory_limit_mb=64,
+    ),
+
+    Exercise(
+        type_="code",
+        question="Lee dos números reales x e y y muestra x/y con 6 decimales.",
+        tests_json={
+            "sample": [{"input": "5 2\n", "output": "2.500000"}],
+            "hidden": [
+                {"input": "7 3.5\n", "output": "2.000000"},
+                {"input": "2 3\n", "output": "0.666667"}
+            ]
+        },
+        hint="Activa fixed y setprecision(6). El verificador tolera salto y espacios finales.",
+        solution_code=(
+            '#include <iostream>\n#include <iomanip>\nusing namespace std;\n'
+            'int main(){ double x,y; cin>>x>>y; cout.setf(ios::fixed); cout<<setprecision(6)<<(x/y); }\n'
+        ),
+        checker="ignore_trailing_whitespace",
+        time_limit_ms=1000,
+        memory_limit_mb=64,
+    ),
+
+    Exercise(
+        type_="code",
+        question=("Lee un radio (double) y muestra en dos líneas: área del círculo y longitud de la circunferencia, "
+                  "con 6 decimales. Usa PI como constante 3.141592653589793."),
+        tests_json={
+            "sample": [{"input": "1\n", "output": "3.141593\n6.283185"}],
+            "hidden": [
+                {"input": "0\n", "output": "0.000000\n0.000000"},
+                {"input": "2.5\n", "output": "19.634955\n15.707963"}
+            ]
+        },
+        hint="Área = PI*r*r, Longitud = 2*PI*r. Formatea con fixed y 6 decimales. El verificador ignora SOLO el salto FINAL.",
+        solution_code=(
+            '#include <iostream>\n#include <iomanip>\nusing namespace std;\n'
+            "int main(){ const double PI=3.141592653589793; double r; cin>>r; \n"
+            ' cout.setf(ios::fixed); cout<<setprecision(6)<<(PI*r*r)<<"\\n"<<(2*PI*r); }\n'
+        ),
+        checker="ignore_trailing_newlines",
+        time_limit_ms=1000,
+        memory_limit_mb=64,
+    ),
+
+    Exercise(
+        type_="code",
+        question="Convierte Celsius a Fahrenheit. Lee C (double) y muestra F con 2 decimales.",
+        tests_json={
+            "sample": [{"input": "0\n", "output": "32.00"}],
+            "hidden": [
+                {"input": "100\n", "output": "212.00"},
+                {"input": "-40\n", "output": "-40.00"}
+            ]
+        },
+        hint="F = C*9/5 + 32. Usa fixed y setprecision(2). El verificador tolera salto y espacios finales.",
+        solution_code=(
+            '#include <iostream>\n#include <iomanip>\nusing namespace std;\n'
+            'int main(){ double c; cin>>c; double f=c*9.0/5.0+32.0; cout.setf(ios::fixed); cout<<setprecision(2)<<f; }\n'
+        ),
+        checker="ignore_trailing_whitespace",
+        time_limit_ms=1000,
+        memory_limit_mb=64,
+    ),
+
+    Exercise(
+        type_="code",
+        question="Lee tres enteros y muestra su media aritmética como número real con 3 decimales.",
+        tests_json={
+            "sample": [{"input": "3 4 5\n", "output": "4.000"}],
+            "hidden": [
+                {"input": "1 2 2\n", "output": "1.667"},
+                {"input": "-1 0 1\n", "output": "0.000"}
+            ]
+        },
+        hint="Asegura división real usando 3.0 o casting a double. Formatea con 3 decimales. Verificador tolerante a salto/espacios finales.",
+        solution_code=(
+            '#include <iostream>\n#include <iomanip>\nusing namespace std;\n'
+            'int main(){ long long a,b,c; cin>>a>>b>>c; double m=(a+b+c)/3.0; cout.setf(ios::fixed); cout<<setprecision(3)<<m; }\n'
+        ),
+        checker="ignore_trailing_whitespace",
+        time_limit_ms=1000,
+        memory_limit_mb=64,
+    ),
+
+    Exercise(
+        type_="code",
+        question=("Lee una cantidad de segundos (entero no negativo) y muestra en 3 líneas: horas, minutos y segundos "
+                  "restantes (en ese orden)."),
+        tests_json={
+            "sample": [{"input": "3661\n", "output": "1\n1\n1"}],
+            "hidden": [
+                {"input": "59\n", "output": "0\n0\n59"},
+                {"input": "7325\n", "output": "2\n2\n5"}
+            ]
+        },
+        hint="h = s/3600, m = (s%3600)/60, r = s%60. Imprime en líneas separadas. El verificador ignora SOLO el salto FINAL.",
+        solution_code=(
+            '#include <iostream>\nusing namespace std;\n'
+            'int main(){ long long s; cin>>s; long long h=s/3600; long long m=(s%3600)/60; long long r=s%60; cout<<h<<"\\n"<<m<<"\\n"<<r; }\n'
+        ),
+        checker="ignore_trailing_newlines",
+        time_limit_ms=1000,
+        memory_limit_mb=64,
+    ),
+
+    Exercise(
+        type_="code",
+        question="Intercambia dos enteros. Lee a y b y muestra sus valores tras el intercambio en una sola línea separados por un espacio.",
+        tests_json={
+            "sample": [{"input": "7 9\n", "output": "9 7"}],
+            "hidden": [
+                {"input": "0 0\n", "output": "0 0"},
+                {"input": "-3 10\n", "output": "10 -3"}
+            ]
+        },
+        hint="Usa una variable temporal o std::swap. El verificador tolera salto y espacios finales.",
+        solution_code=(
+            '#include <iostream>\nusing namespace std;\n'
+            'int main(){ long long a,b; cin>>a>>b; long long t=a; a=b; b=t; cout<<a<<" "<<b; }\n'
+        ),
+        checker="ignore_trailing_whitespace",
+        time_limit_ms=1000,
+        memory_limit_mb=64,
+    ),
+
+    Exercise(
+        type_="code",
+        question="Lee un carácter y muestra el carácter siguiente en la tabla ASCII.",
+        tests_json={
+            "sample": [{"input": "A\n", "output": "B"}],
+            "hidden": [
+                {"input": "9\n", "output": ":"},
+                {"input": "z\n", "output": "{"}
+            ]
+        },
+        hint="Trabaja con char y suma 1. El verificador tolera salto y espacios finales.",
+        solution_code=(
+            '#include <iostream>\nusing namespace std;\n'
+            'int main(){ char c; cin>>c; char d = c + 1; cout<<d; }\n'
+        ),
+        checker="ignore_trailing_whitespace",
+        time_limit_ms=1000,
+        memory_limit_mb=64,
+    ),
+
+    Exercise(
+        type_="code",
+        question="Lee un carácter que representa un dígito ('0'..'9') y muestra su valor numérico (0..9).",
+        tests_json={
+            "sample": [{"input": "7\n", "output": "7"}],
+            "hidden": [
+                {"input": "0\n", "output": "0"},
+                {"input": "9\n", "output": "9"}
+            ]
+        },
+        hint="Convierte con c - '0'. El verificador tolera salto y espacios finales.",
+        solution_code=(
+            '#include <iostream>\nusing namespace std;\n'
+            'int main(){ char c; cin>>c; cout<<(int)(c - \'0\'); }\n'
+        ),
+        checker="ignore_trailing_whitespace",
+        time_limit_ms=1000,
+        memory_limit_mb=64,
+    ),
+
+    Exercise(
+        type_="code",
+        question=("Lee un entero n y muestra, en líneas separadas, su último dígito y el penúltimo dígito (en valor absoluto)."),
+        tests_json={
+            "sample": [{"input": "5734\n", "output": "4\n3"}],
+            "hidden": [
+                {"input": "5\n", "output": "5\n0"},
+                {"input": "-120\n", "output": "0\n2"}
+            ]
+        },
+        hint="Usa llabs(n). Último: abs(n)%10. Penúltimo: (abs(n)/10)%10. El verificador ignora SOLO el salto FINAL.",
+        solution_code=(
+            '#include <iostream>\n#include <cstdlib>\nusing namespace std;\n'
+            'int main(){ long long n; cin>>n; long long a = llabs(n); cout<<(a%10)<<"\\n"<<((a/10)%10); }\n'
+        ),
+        checker="ignore_trailing_newlines",
+        time_limit_ms=1000,
+        memory_limit_mb=64,
+    ),
+
+    Exercise(
+        type_="code",
+        question=("Precio con IVA fijo. Lee el precio base (double) y muestra el precio final con IVA del 21% usando una "
+                  "constante. Formatea con 2 decimales."),
+        tests_json={
+            "sample": [{"input": "100\n", "output": "121.00"}],
+            "hidden": [
+                {"input": "0\n", "output": "0.00"},
+                {"input": "59.9\n", "output": "72.48"}
+            ]
+        },
+        hint="Declara const double IVA=0.21; total = base*(1+IVA). El verificador tolera salto y espacios finales.",
+        solution_code=(
+            '#include <iostream>\n#include <iomanip>\nusing namespace std;\n'
+            'int main(){ const double IVA=0.21; double base; cin>>base; double total=base*(1.0+IVA); '
+            'cout.setf(ios::fixed); cout<<setprecision(2)<<total; }\n'
+        ),
+        checker="ignore_trailing_whitespace",
+        time_limit_ms=1000,
+        memory_limit_mb=64,
+    ),
+
+    Exercise(
+        type_="code",
+        question="Lee dos enteros a y b y muestra a/b como número real con 6 decimales usando casting explícito.",
+        tests_json={
+            "sample": [{"input": "3 2\n", "output": "1.500000"}],
+            "hidden": [
+                {"input": "7 5\n", "output": "1.400000"},
+                {"input": "10 4\n", "output": "2.500000"}
+            ]
+        },
+        hint="Usa static_cast<double>(a)/b y setprecision(6). Verificador tolerante a salto/espacios finales.",
+        solution_code=(
+            '#include <iostream>\n#include <iomanip>\nusing namespace std;\n'
+            'int main(){ long long a,b; cin>>a>>b; cout.setf(ios::fixed); cout<<setprecision(6)<<(static_cast<double>(a)/b); }\n'
+        ),
+        checker="ignore_trailing_whitespace",
+        time_limit_ms=1000,
+        memory_limit_mb=64,
+    ),
+
+    Exercise(
+        type_="code",
+        question=("Lee un número real x y muestra, en 4 líneas, round(x), floor(x), ceil(x) y trunc(x) en ese orden, "
+                  "como enteros."),
+        tests_json={
+            "sample": [{"input": "2.3\n", "output": "2\n2\n3\n2"}],
+            "hidden": [
+                {"input": "5.5\n", "output": "6\n5\n6\n5"},
+                {"input": "-3.8\n", "output": "-4\n-4\n-3\n-3"}
+            ]
+        },
+        hint="Incluye <cmath>. round(x) redondea al entero más cercano (mitades → lejos de 0). El verificador ignora SOLO el salto FINAL.",
+        solution_code=(
+            '#include <iostream>\n#include <cmath>\nusing namespace std;\n'
+            'int main(){ double x; cin>>x; \n'
+            ' cout<<(long long) llround(x) <<"\\n"<< (long long) floor(x) <<"\\n"<< (long long) ceil(x) <<"\\n"<< (long long) trunc(x); }\n'
+        ),
+        checker="ignore_trailing_newlines",
+        time_limit_ms=1000,
+        memory_limit_mb=64,
+    ),
+
+    Exercise(
+        type_="code",
+        question=("Lee cuatro enteros a, b, c y d y muestra el valor de la expresión (a + b * c - d)."),
+        tests_json={
+            "sample": [{"input": "3 5 2 4\n", "output": "9"}],
+            "hidden": [
+                {"input": "1 2 3 4\n", "output": "3"},
+                {"input": "-2 7 -1 5\n", "output": "-10"}
+            ]
+        },
+        hint="Respeta la precedencia: * antes que + y -. El verificador tolera salto y espacios finales.",
+        solution_code=(
+            '#include <iostream>\nusing namespace std;\n'
+            'int main(){ long long a,b,c,d; cin>>a>>b>>c>>d; cout << (a + b*c - d); }\n'
+        ),
+        checker="ignore_trailing_whitespace",
+        time_limit_ms=1000,
+        memory_limit_mb=64,
+    ),
+
+    Exercise(
+        type_="code",
+        question=("Lee nombre y apellido (dos palabras) y muestra 'Usuario: &lt;nombre&gt; &lt;apellido&gt;'. "
+                  "Usa tipos string."),
+        tests_json={
+            "sample": [{"input": "Marie Curie\n", "output": "Usuario: Marie Curie"}],
+            "hidden": [
+                {"input": "Alan Turing\n", "output": "Usuario: Alan Turing"},
+                {"input": "Niels Bohr\n", "output": "Usuario: Niels Bohr"}
+            ]
+        },
+        hint="Lee dos strings con cin y concatena con un espacio. El verificador tolera salto y espacios finales.",
+        solution_code=(
+            '#include <iostream>\n#include <string>\nusing namespace std;\n'
+            'int main(){ string n,a; cin>>n>>a; cout<<"Usuario: "<<n<<" "<<a; }\n'
+        ),
+        checker="ignore_trailing_whitespace",
+        time_limit_ms=1000,
+        memory_limit_mb=64,
+    ),
+
+    Exercise(
+        type_="code",
+        question=("Lee dos números (double) x e y y muestra el valor absoluto de (x - y) con 6 decimales."),
+        tests_json={
+            "sample": [{"input": "7.5 2\n", "output": "5.500000"}],
+            "hidden": [
+                {"input": "-3 4\n", "output": "7.000000"},
+                {"input": "2.25 2.75\n", "output": "0.500000"}
+            ]
+        },
+        hint="Usa fabs o std::abs(double) y setprecision(6). El verificador tolera salto y espacios finales.",
+        solution_code=(
+            '#include <iostream>\n#include <iomanip>\n#include <cmath>\nusing namespace std;\n'
+            'int main(){ double x,y; cin>>x>>y; cout.setf(ios::fixed); cout<<setprecision(6)<<fabs(x-y); }\n'
+        ),
+        checker="ignore_trailing_whitespace",
+        time_limit_ms=1000,
+        memory_limit_mb=64,
+    ),
 ]

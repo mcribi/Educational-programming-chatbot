@@ -15,7 +15,7 @@ lesson = Lesson(
         "}\n\n"
         "int main() {\n"
         "    double r = Cuadrado(4);\n"
-        "    cout << r;  // Imprime 16\n"
+        "    cout &lt;&lt; r;  // Imprime 16\n"
         "}</code></pre>"
     )
 )
