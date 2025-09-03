@@ -3,7 +3,7 @@ import queue
 from logging.handlers import QueueHandler, QueueListener
 from telegram import Update
 from telegram.ext import (ApplicationBuilder, CommandHandler, CallbackQueryHandler, MessageHandler, ContextTypes, filters,)
-from handlers.menu import start, handle_callback, handle_text, cmd_suggest, cmd_suggestions
+from handlers.menu import start, handle_callback, handle_text, cmd_suggest, cmd_suggestions, help_cmd, menu_cmd
 from handlers.exercises import handle_response
 from scripts.init_exercises import populate_exercises
 from data.theory_loader import load_theory
@@ -156,6 +156,8 @@ if __name__ == "__main__":
     app.add_handler(CommandHandler("codehelp", cmd_code_help))
     app.add_handler(CommandHandler("suggest", cmd_suggest))
     app.add_handler(CommandHandler("suggestions", cmd_suggestions))
+    app.add_handler(CommandHandler("help", help_cmd))
+    app.add_handler(CommandHandler("menu", menu_cmd))
 
     # principal router
     app.add_handler(MessageHandler(filters.TEXT & ~filters.COMMAND, route_text_or_answer))

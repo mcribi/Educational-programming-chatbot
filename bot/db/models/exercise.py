@@ -9,37 +9,17 @@ class Exercise(Base):
 
     id = Column(Integer, primary_key=True)
     topic_id = Column(Integer, ForeignKey("topics.id", ondelete="CASCADE"), nullable=False)
-
-    # types: "test" and "code"
-    type = Column(String, nullable=False)
-
-    #statement
-    question = Column(String, nullable=False)
-
-    # for test type
-    options = Column(String, nullable=True)
+    type = Column(String, nullable=False)# types: "test" and "code"
+    question = Column(String, nullable=False)#statement
+    options = Column(String, nullable=True)# for test type
     answer = Column(String, nullable=False)
-
-    # explanation and feedback 
-    explanation = Column(String, nullable=True)
-
-    # Mini-tests for code exercises {"sample":[{input,output},...], "hidden":[...]}
-    tests_json = Column(JSONB, nullable=True)
-
-    #hint
-    hint = Column(Text, nullable=True)
-
-    # oficial solution
-    solution_code = Column(Text, nullable=True)
-
-    # compare the output
-    checker = Column(String, nullable=True, default="normalized")
-
-    # tolerance for the checker
-    float_tol = Column(Float, nullable=True)
-
-    # execution limits
-    time_limit_ms = Column(Integer, nullable=True)   
+    explanation = Column(String, nullable=True)# explanation and feedback 
+    tests_json = Column(JSONB, nullable=True)# Mini-tests for code exercises {"sample":[{input,output},...], "hidden":[...]}
+    hint = Column(Text, nullable=True)   #hint
+    solution_code = Column(Text, nullable=True) # oficial solution
+    checker = Column(String, nullable=True, default="normalized")# compare the output
+    float_tol = Column(Float, nullable=True) # tolerance for the checker   
+    time_limit_ms = Column(Integer, nullable=True) # execution limits
     memory_limit_mb = Column(Integer, nullable=True) 
 
     # relationships

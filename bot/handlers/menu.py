@@ -1,4 +1,4 @@
-from telegram import InlineKeyboardMarkup, InlineKeyboardButton
+from telegram import InlineKeyboardMarkup, InlineKeyboardButton, ReplyKeyboardRemove
 import asyncio
 from time import time
 import random
@@ -23,6 +23,7 @@ import json
 import re
 from html import escape as h
 from telegram.constants import ParseMode
+from telegram.ext import ContextTypes
 
 try:
     from handlers.code import CODE_KEY
@@ -161,9 +162,25 @@ async def _send_code_prompt(query_or_update, context, ex: Exercise):
             # If it fails for any other reason, propagate it. 
             raise
 
+#for cleaning the keyborad
+async def remove_persistent_keyboard(update):
+    """Remove legacy keyboards from ReplyKeyboard, avoiding BadRequest due to empty text."""
+    try:
+        await update.message.reply_text("👋", reply_markup=ReplyKeyboardRemove())
+    except BadRequest:
+        await update.message.reply_text("Teclado actualizado.", reply_markup=ReplyKeyboardRemove())
+
+
 # ------------------------------------------------------------------------------
 # Function to show the main menu
 async def show_main_menu(update, context):
+
+    if update.message:
+        target_msg = update.message
+    else:
+        await update.callback_query.answer()
+        target_msg = update.callback_query.message
+
     buttons = [
         [InlineKeyboardButton("📚 Aprender", callback_data="learn")],
         [InlineKeyboardButton("📝 Practicar", callback_data="practice")], 
@@ -172,16 +189,17 @@ async def show_main_menu(update, context):
         [InlineKeyboardButton("🧪 Examen por tema", callback_data="exam_by_topic")],
         [InlineKeyboardButton("🏁 Examen final", callback_data="exam_final")]
     ]
-    if update.message:
-        await update.message.reply_text("¿Qué quieres hacer?", reply_markup=InlineKeyboardMarkup(buttons))
-    else:
-        await update.callback_query.message.reply_text("¿Qué quieres hacer?", reply_markup=InlineKeyboardMarkup(buttons))
+    await target_msg.reply_text(
+        "¿Qué quieres hacer?",
+        reply_markup=InlineKeyboardMarkup(buttons)
+    )
 
 # Function to start the bot and check user registration
 async def start(update, context):
     telegram_id = update.effective_user.id
     username = update.effective_user.username
     first_name = update.effective_user.first_name
+    await remove_persistent_keyboard(update)
 
     with SessionLocal() as session:
         user = session.query(User).filter_by(telegram_id=telegram_id).first()
@@ -189,8 +207,9 @@ async def start(update, context):
         if user:
             context.user_data["user_id"] = user.id
             await update.message.reply_text(
-                f"👋 ¡Hola de nuevo, {user.name}!\nTu identificador único es <b>{user.id}</b>.",
-                parse_mode="HTML"
+                f"¡Hola de nuevo, {user.name}!\nTu identificador único es <b>{user.id}</b>.",
+                parse_mode="HTML", 
+                reply_markup=ReplyKeyboardRemove()
             )
             await show_main_menu(update, context)
         else:
@@ -199,7 +218,21 @@ async def start(update, context):
                 "username": username
             }
             await update.message.reply_text(
-                "👋 ¡Hola! Parece que es tu primera vez usando el bot.\n\nPor favor, dime tu nombre para poder dirigirme a ti:"
+                "👋 ¡Bienvenido/a al chatbot educativo de programación en C++!\n\n"
+                "📌 Aquí podrás:\n"
+                "• Aprender teoría paso a paso.\n"
+                "• Practicar ejercicios interactivos con corrección al instante.\n"
+                "• Hacer tests de autoevaluación y exámenes.\n\n"
+                "⚙️ Comandos principales:\n"
+                "• /start – Iniciar el bot. Si notas que el bot está fallando vuelve a introducir /start. \n"
+                "• /menu – Volver al menú principal.\n"
+                "• /help – Ayuda sobre cómo usar el bot.\n\n"
+                "Por lo demás, te puedes mover libremente con los botones.\n\n"
+                "🔒 Nota: el bot guardará tu número de usuario de Telegram y tu nombre "
+                "para poder gestionar tu progreso y personalizar tu experiencia.\n\n"
+                "Por favor, dime tu nombre para poder dirigirme a ti:",
+                parse_mode="HTML",
+                reply_markup=ReplyKeyboardRemove()
             )
 
 # Function to handle text messages
@@ -1301,3 +1334,20 @@ def _extract_code_block(text: str) -> str | None:
         return s
 
     return None
+
+
+async def help_cmd(update, context: ContextTypes.DEFAULT_TYPE):
+    await update.message.reply_text(
+        "ℹ️ <b>Ayuda</b>\n\n"
+        "• Usa los <i>botones</i> para navegar por teoría, práctica, tests y exámenes.\n"
+        "• Comandos:\n"
+        "  /start – Reinicia el bot.\n"
+        "  /menu – Vuelve al menú principal.\n"
+        "  /help – Muestra esta ayuda.\n",
+        parse_mode="HTML",
+        reply_markup=ReplyKeyboardRemove()
+    )
+
+async def menu_cmd(update, context: ContextTypes.DEFAULT_TYPE):
+    #await update.message.reply_text("👋", reply_markup=ReplyKeyboardRemove())
+    await show_main_menu(update, context)
