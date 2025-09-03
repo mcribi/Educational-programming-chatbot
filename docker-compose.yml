@@ -90,6 +90,8 @@ services:
       #- judge0_workers
     env_file:
       - .env
+    volumes: 
+      - .:/app
     environment:
       DATABASE_URL: postgresql://botuser:botpass@db:5432/botdb
       JUDGE0_URL: http://judge0:2358

@@ -13,3 +13,4 @@ class Attempt(Base):
     is_correct = Column(Boolean, nullable=False)
 
     user = relationship("User", back_populates="attempts") # in the class user there will be a atribute calls attempts
+    exercise = relationship("Exercise", back_populates="attempts")

@@ -504,4 +504,309 @@ exercises_functions = [
         answer="-2",
         explanation="Imprime '-' y retorna 2; el cout del main concatena el '2' ⇒ '-2'."
     ),
+
+    Exercise(
+        type_="code",
+        question="Implementa una función que sume dos enteros y úsala para leer a y b y mostrar a+b.",
+        tests_json={
+            "sample": [{"input": "7 5\n", "output": "12"}],
+            "hidden": [
+                {"input": "-3 10\n", "output": "7"},
+                {"input": "0 0\n", "output": "0"}
+            ]
+        },
+        hint="Firma sugerida: long long Suma(long long a, long long b). Llama a la función desde main.",
+        solution_code=(
+            '#include <iostream>\nusing namespace std;\n'
+            'long long Suma(long long a, long long b){ return a+b; }\n'
+            'int main(){ long long a,b; if(!(cin>>a>>b)) return 0; cout<<Suma(a,b); }\n'
+        ),
+        checker="ignore_trailing_whitespace",
+        time_limit_ms=1000, memory_limit_mb=64,
+    ),
+
+    Exercise(
+        type_="code",
+        question="Crea una función que devuelva el mayor de tres enteros. Lee a, b, c y muestra el máximo.",
+        tests_json={
+            "sample": [{"input": "3 9 5\n", "output": "9"}],
+            "hidden": [
+                {"input": "-7 -2 -5\n", "output": "-2"},
+                {"input": "10 10 7\n", "output": "10"}
+            ]
+        },
+        hint="Firma sugerida: long long Max3(long long a,long long b,long long c).",
+        solution_code=(
+            '#include <iostream>\nusing namespace std;\n'
+            'long long Max3(long long a,long long b,long long c){ long long m=a; if(b>m)m=b; if(c>m)m=c; return m; }\n'
+            'int main(){ long long a,b,c; cin>>a>>b>>c; cout<<Max3(a,b,c); }\n'
+        ),
+        checker="ignore_trailing_whitespace",
+        time_limit_ms=1000, memory_limit_mb=64,
+    ),
+
+    Exercise(
+        type_="code",
+        question="Escribe una función booleana que indique si un entero es par. Lee x y muestra 'Par' o 'Impar'.",
+        tests_json={
+            "sample": [{"input": "8\n", "output": "Par"}],
+            "hidden": [
+                {"input": "-3\n", "output": "Impar"},
+                {"input": "0\n", "output": "Par"}
+            ]
+        },
+        hint="Firma sugerida: bool EsPar(long long x). Imprime texto, no booleanos.",
+        solution_code=(
+            '#include <iostream>\nusing namespace std;\n'
+            'bool EsPar(long long x){ return x%2==0; }\n'
+            'int main(){ long long x; cin>>x; cout<<(EsPar(x)? "Par":"Impar"); }\n'
+        ),
+        checker="ignore_trailing_whitespace",
+        time_limit_ms=1000, memory_limit_mb=64,
+    ),
+
+    Exercise(
+        type_="code",
+        question="Implementa una función AbsLL que devuelva el valor absoluto de un long long sin usar librerías. Lee n y muestra |n|.",
+        tests_json={
+            "sample": [{"input": "-7\n", "output": "7"}],
+            "hidden": [
+                {"input": "0\n", "output": "0"},
+                {"input": "15\n", "output": "15"}
+            ]
+        },
+        hint="Firma: long long AbsLL(long long x). Si x<0, retorna -x; si no, x.",
+        solution_code=(
+            '#include <iostream>\nusing namespace std;\n'
+            'long long AbsLL(long long x){ return x<0? -x: x; }\n'
+            'int main(){ long long n; cin>>n; cout<<AbsLL(n); }\n'
+        ),
+        checker="ignore_trailing_whitespace",
+        time_limit_ms=1000, memory_limit_mb=64,
+    ),
+
+    Exercise(
+        type_="code",
+        question="Implementa Potencia(a,b) para enteros con b ≥ 0 (sin pow). Lee a y b y muestra a^b.",
+        tests_json={
+            "sample": [{"input": "2 10\n", "output": "1024"}],
+            "hidden": [
+                {"input": "5 0\n", "output": "1"},
+                {"input": "-2 3\n", "output": "-8"}
+            ]
+        },
+        hint="Firma sugerida: long long Potencia(long long a, unsigned long long b). Multiplica un acumulador b veces.",
+        solution_code=(
+            '#include <iostream>\nusing namespace std;\n'
+            'long long Potencia(long long a, unsigned long long b){ long long r=1; for(unsigned long long i=0;i<b;i++) r*=a; return r; }\n'
+            'int main(){ long long a; unsigned long long b; if(!(cin>>a>>b)) return 0; cout<<Potencia(a,b); }\n'
+        ),
+        checker="ignore_trailing_whitespace",
+        time_limit_ms=1000, memory_limit_mb=64,
+    ),
+
+    Exercise(
+        type_="code",
+        question="Escribe Factorial(n) para 0 ≤ n ≤ 12. Lee n y muestra n!.",
+        tests_json={
+            "sample": [{"input": "5\n", "output": "120"}],
+            "hidden": [
+                {"input": "0\n", "output": "1"},
+                {"input": "10\n", "output": "3628800"}
+            ]
+        },
+        hint="Iterativo o recursivo, pero evita desbordar (por eso n ≤ 12). Firma: long long Factorial(int n).",
+        solution_code=(
+            '#include <iostream>\nusing namespace std;\n'
+            'long long Factorial(int n){ long long f=1; for(int i=1;i<=n;i++) f*=i; return f; }\n'
+            'int main(){ int n; cin>>n; cout<<Factorial(n); }\n'
+        ),
+        checker="ignore_trailing_whitespace",
+        time_limit_ms=1000, memory_limit_mb=64,
+    ),
+
+    Exercise(
+        type_="code",
+        question="Implementa bool EsPrimo(n) (n ≥ 2) y úsala para imprimir 'Primo' o 'No primo'.",
+        tests_json={
+            "sample": [{"input": "7\n", "output": "Primo"}],
+            "hidden": [
+                {"input": "9\n", "output": "No primo"},
+                {"input": "97\n", "output": "Primo"}
+            ]
+        },
+        hint="Prueba divisores i desde 2 mientras i*i ≤ n. Firma: bool EsPrimo(long long n).",
+        solution_code=(
+            '#include <iostream>\nusing namespace std;\n'
+            'bool EsPrimo(long long n){ for(long long i=2;i*i<=n;i++) if(n%i==0) return false; return true; }\n'
+            'int main(){ long long n; cin>>n; cout<<(EsPrimo(n)? "Primo":"No primo"); }\n'
+        ),
+        checker="ignore_trailing_whitespace",
+        time_limit_ms=1000, memory_limit_mb=64,
+    ),
+
+    Exercise(
+        type_="code",
+        question="Implementa MCD(a,b) con Euclides. Lee a y b y muestra su MCD (como entero no negativo).",
+        tests_json={
+            "sample": [{"input": "48 18\n", "output": "6"}],
+            "hidden": [
+                {"input": "7 13\n", "output": "1"},
+                {"input": "100 25\n", "output": "25"}
+            ]
+        },
+        hint="Mientras b≠0: (a,b)=(b,a%b). Devuelve |a|. Firma: long long MCD(long long a,long long b).",
+        solution_code=(
+            '#include <iostream>\nusing namespace std;\n'
+            'long long AbsLL(long long x){ return x<0? -x: x; }\n'
+            'long long MCD(long long a,long long b){ a=AbsLL(a); b=AbsLL(b); while(b){ long long r=a%b; a=b; b=r; } return a; }\n'
+            'int main(){ long long a,b; cin>>a>>b; cout<<MCD(a,b); }\n'
+        ),
+        checker="ignore_trailing_whitespace",
+        time_limit_ms=1000, memory_limit_mb=64,
+    ),
+
+    Exercise(
+        type_="code",
+        question="Implementa MCM(a,b) usando MCD. Lee a y b y muestra su mínimo común múltiplo. Si alguno es 0, muestra 0.",
+        tests_json={
+            "sample": [{"input": "6 8\n", "output": "24"}],
+            "hidden": [
+                {"input": "7 13\n", "output": "91"},
+                {"input": "0 25\n", "output": "0"}
+            ]
+        },
+        hint="MCM(a,b) = |a/ MCD(a,b)| * |b| para evitar overflow parcial. Devuelve 0 si a==0 o b==0.",
+        solution_code=(
+            '#include <iostream>\nusing namespace std;\n'
+            'long long AbsLL(long long x){ return x<0? -x: x; }\n'
+            'long long MCD(long long a,long long b){ a=AbsLL(a); b=AbsLL(b); while(b){ long long r=a%b; a=b; b=r; } return a; }\n'
+            'long long MCM(long long a,long long b){ if(a==0||b==0) return 0; long long g=MCD(a,b); return AbsLL(a/g)*AbsLL(b); }\n'
+            'int main(){ long long a,b; cin>>a>>b; cout<<MCM(a,b); }\n'
+        ),
+        checker="ignore_trailing_whitespace",
+        time_limit_ms=1000, memory_limit_mb=64,
+    ),
+
+    Exercise(
+        type_="code",
+        question="Implementa Fibonacci(n) con F0=0, F1=1 (iterativo). Lee n (n ≥ 0) y muestra F(n).",
+        tests_json={
+            "sample": [{"input": "7\n", "output": "13"}],
+            "hidden": [
+                {"input": "0\n", "output": "0"},
+                {"input": "1\n", "output": "1"}
+            ]
+        },
+        hint="Firma: unsigned long long Fibonacci(unsigned long long n). Itera acumulando.",
+        solution_code=(
+            '#include <iostream>\nusing namespace std;\n'
+            'unsigned long long Fibonacci(unsigned long long n){ unsigned long long a=0,b=1; for(unsigned long long i=0;i<n;i++){ unsigned long long c=a+b; a=b; b=c; } return a; }\n'
+            'int main(){ unsigned long long n; cin>>n; cout<<Fibonacci(n); }\n'
+        ),
+        checker="ignore_trailing_whitespace",
+        time_limit_ms=1200, memory_limit_mb=64,
+    ),
+
+    Exercise(
+        type_="code",
+        question="Implementa Digitos(n) que devuelve cuántos dígitos tiene |n| en base 10. Lee n y muestra Digitos(n).",
+        tests_json={
+            "sample": [{"input": "-120\n", "output": "3"}],
+            "hidden": [
+                {"input": "0\n", "output": "1"},
+                {"input": "987654\n", "output": "6"}
+            ]
+        },
+        hint="Caso especial: 0 tiene 1 dígito. Luego divide por 10 contando.",
+        solution_code=(
+            '#include <iostream>\nusing namespace std;\n'
+            'long long AbsLL(long long x){ return x<0? -x: x; }\n'
+            'int Digitos(long long n){ n=AbsLL(n); int c=1; while(n>=10){ n/=10; c++; } return c; }\n'
+            'int main(){ long long n; cin>>n; cout<<Digitos(n); }\n'
+        ),
+        checker="ignore_trailing_whitespace",
+        time_limit_ms=1000, memory_limit_mb=64,
+    ),
+
+    Exercise(
+        type_="code",
+        question="Implementa SumaDigitos(n) para n ≥ 0. Lee n y muestra la suma de sus dígitos.",
+        tests_json={
+            "sample": [{"input": "573\n", "output": "15"}],
+            "hidden": [
+                {"input": "0\n", "output": "0"},
+                {"input": "1002003\n", "output": "6"}
+            ]
+        },
+        hint="Firma: unsigned long long SumaDigitos(unsigned long long n). Extrae n%10 en un bucle.",
+        solution_code=(
+            '#include <iostream>\nusing namespace std;\n'
+            'unsigned long long SumaDigitos(unsigned long long n){ unsigned long long s=0; do{ s+=n%10; n/=10; }while(n>0); return s; }\n'
+            'int main(){ unsigned long long n; cin>>n; cout<<SumaDigitos(n); }\n'
+        ),
+        checker="ignore_trailing_whitespace",
+        time_limit_ms=1000, memory_limit_mb=64,
+    ),
+
+    Exercise(
+        type_="code",
+        question="Implementa Invierte(n) para n ≥ 0 que devuelve el número con sus dígitos en orden inverso. Lee n y muestra Invierte(n).",
+        tests_json={
+            "sample": [{"input": "1200\n", "output": "21"}],
+            "hidden": [
+                {"input": "7\n", "output": "7"},
+                {"input": "4050\n", "output": "504"}
+            ]
+        },
+        hint="Quita dígitos con n%10 y construye r=r*10+ultimo. Los ceros de la izquierda del resultado se descartan.",
+        solution_code=(
+            '#include <iostream>\nusing namespace std;\n'
+            'unsigned long long Invierte(unsigned long long n){ unsigned long long r=0; while(n>0){ r=r*10+(n%10); n/=10; } return r; }\n'
+            'int main(){ unsigned long long n; cin>>n; cout<<Invierte(n); }\n'
+        ),
+        checker="ignore_trailing_whitespace",
+        time_limit_ms=1000, memory_limit_mb=64,
+    ),
+
+    Exercise(
+        type_="code",
+        question="Escribe SwapLL(long long & a, long long & b) para intercambiar dos enteros. Lee a y b, aplica SwapLL y muestra 'a b'.",
+        tests_json={
+            "sample": [{"input": "7 9\n", "output": "9 7"}],
+            "hidden": [
+                {"input": "0 0\n", "output": "0 0"},
+                {"input": "-3 10\n", "output": "10 -3"}
+            ]
+        },
+        hint="Usa una variable temporal dentro de la función. Imprime en una sola línea separados por espacio.",
+        solution_code=(
+            '#include <iostream>\nusing namespace std;\n'
+            'void SwapLL(long long &a,long long &b){ long long t=a; a=b; b=t; }\n'
+            'int main(){ long long a,b; cin>>a>>b; SwapLL(a,b); cout<<a<<" "<<b; }\n'
+        ),
+        checker="ignore_trailing_whitespace",
+        time_limit_ms=1000, memory_limit_mb=64,
+    ),
+
+    Exercise(
+        type_="code",
+        question="Implementa Ordena3(a,b,c) por referencia y ordénalos de menor a mayor. Lee a b c y muestra 'a b c' ya ordenados.",
+        tests_json={
+            "sample": [{"input": "3 1 2\n", "output": "1 2 3"}],
+            "hidden": [
+                {"input": "10 10 7\n", "output": "7 10 10"},
+                {"input": "-1 -5 0\n", "output": "-5 -1 0"}
+            ]
+        },
+        hint="Haz intercambios condicionales (if) dentro de Ordena3. Imprime en una única línea.",
+        solution_code=(
+            '#include <iostream>\nusing namespace std;\n'
+            'void SwapLL(long long &a,long long &b){ long long t=a; a=b; b=t; }\n'
+            'void Ordena3(long long &a,long long &b,long long &c){ if(a>b) SwapLL(a,b); if(b>c) SwapLL(b,c); if(a>b) SwapLL(a,b); }\n'
+            'int main(){ long long a,b,c; cin>>a>>b>>c; Ordena3(a,b,c); cout<<a<<" "<<b<<" "<<c; }\n'
+        ),
+        checker="ignore_trailing_whitespace",
+        time_limit_ms=1000, memory_limit_mb=64,
+    ),
 ]

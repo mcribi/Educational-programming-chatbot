@@ -10,4 +10,4 @@ class Suggestion(Base):
     created_at = Column(DateTime(timezone=True), server_default=func.now(), nullable=False)
     resolved = Column(Boolean, server_default="false", nullable=False)
 
-    user = relationship("User")
+    user = relationship("User", back_populates="suggestions")

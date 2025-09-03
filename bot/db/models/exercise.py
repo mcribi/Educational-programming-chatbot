@@ -44,6 +44,7 @@ class Exercise(Base):
 
     # relationships
     topic = relationship("Topic", back_populates="exercises")
+    attempts = relationship("Attempt", back_populates="exercise") #inverse attempt
 
     # shortcuts
     __table_args__ = (

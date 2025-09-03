@@ -453,5 +453,342 @@ exercises_conditional = [
         options=["Cuatro o cinco", "Otro", "Error", "Nada"],
         answer="Cuatro o cinco",
         explanation="Al no haber instrucciones entre case 4 y case 5, ambos activan el mismo bloque."
-    )
+    ), 
+
+    Exercise(
+        type_="code",
+        question="Lee un entero y muestra 'Par' si es múltiplo de 2 o 'Impar' en caso contrario.",
+        tests_json={
+            "sample": [{"input": "8\n", "output": "Par"}],
+            "hidden": [
+                {"input": "-3\n", "output": "Impar"},
+                {"input": "0\n", "output": "Par"}
+            ]
+        },
+        hint="Usa if con x % 2 == 0. (El verificador tolera salto y espacios finales.)",
+        solution_code=(
+            '#include <iostream>\nusing namespace std;\n'
+            'int main(){ long long x; if(!(cin>>x)) return 0; cout<<(x%2==0? "Par":"Impar"); }\n'
+        ),
+        checker="ignore_trailing_whitespace",
+        time_limit_ms=1000, memory_limit_mb=64,
+    ),
+
+    Exercise(
+        type_="code",
+        question="Lee dos enteros a y b y muestra un único símbolo: '>', '<' o '=' comparando a con b.",
+        tests_json={
+            "sample": [{"input": "7 5\n", "output": ">"}],
+            "hidden": [
+                {"input": "-2 -2\n", "output": "="},
+                {"input": "3 10\n", "output": "<"}
+            ]
+        },
+        hint="Imprime exactamente uno de estos tres símbolos. (El verificador tolera salto/espacios finales.)",
+        solution_code=(
+            '#include <iostream>\nusing namespace std;\n'
+            'int main(){ long long a,b; cin>>a>>b; cout<<(a>b?">":(a<b?"<":"=")); }\n'
+        ),
+        checker="ignore_trailing_whitespace",
+        time_limit_ms=1000, memory_limit_mb=64,
+    ),
+
+    Exercise(
+        type_="code",
+        question="Lee tres enteros y muestra el mayor de ellos.",
+        tests_json={
+            "sample": [{"input": "3 9 5\n", "output": "9"}],
+            "hidden": [
+                {"input": "-7 -2 -5\n", "output": "-2"},
+                {"input": "10 10 7\n", "output": "10"}
+            ]
+        },
+        hint="Inicializa max con el primero y actualiza con if sobre los demás.",
+        solution_code=(
+            '#include <iostream>\nusing namespace std;\n'
+            'int main(){ long long a,b,c; cin>>a>>b>>c; long long mx=a; if(b>mx) mx=b; if(c>mx) mx=c; cout<<mx; }\n'
+        ),
+        checker="ignore_trailing_whitespace",
+        time_limit_ms=1000, memory_limit_mb=64,
+    ),
+
+    Exercise(
+        type_="code",
+        question="Lee un entero y muestra 'Positivo', 'Cero' o 'Negativo' según corresponda.",
+        tests_json={
+            "sample": [{"input": "0\n", "output": "Cero"}],
+            "hidden": [
+                {"input": "-12\n", "output": "Negativo"},
+                {"input": "7\n", "output": "Positivo"}
+            ]
+        },
+        hint="Encadena if/else if/else comparando con 0.",
+        solution_code=(
+            '#include <iostream>\nusing namespace std;\n'
+            'int main(){ long long x; cin>>x; if(x>0) cout<<"Positivo"; else if(x==0) cout<<"Cero"; else cout<<"Negativo"; }\n'
+        ),
+        checker="ignore_trailing_whitespace",
+        time_limit_ms=1000, memory_limit_mb=64,
+    ),
+
+    Exercise(
+        type_="code",
+        question="Lee un entero y muestra su valor absoluto (sin usar funciones de librería).",
+        tests_json={
+            "sample": [{"input": "-7\n", "output": "7"}],
+            "hidden": [
+                {"input": "0\n", "output": "0"},
+                {"input": "15\n", "output": "15"}
+            ]
+        },
+        hint="Si x<0, cambia el signo con x = -x; luego imprime.",
+        solution_code=(
+            '#include <iostream>\nusing namespace std;\n'
+            'int main(){ long long x; cin>>x; if(x<0) x=-x; cout<<x; }\n'
+        ),
+        checker="ignore_trailing_whitespace",
+        time_limit_ms=1000, memory_limit_mb=64,
+    ),
+
+    Exercise(
+        type_="code",
+        question="Lee un año (entero) y muestra 'Bisiesto' si lo es o 'No bisiesto' en caso contrario.",
+        tests_json={
+            "sample": [{"input": "2020\n", "output": "Bisiesto"}],
+            "hidden": [
+                {"input": "1900\n", "output": "No bisiesto"},
+                {"input": "2000\n", "output": "Bisiesto"}
+            ]
+        },
+        hint="Regla: divisible entre 400, o divisible entre 4 y no entre 100.",
+        solution_code=(
+            '#include <iostream>\nusing namespace std;\n'
+            'int main(){ long long y; cin>>y; bool b=(y%400==0)||((y%4==0)&&(y%100!=0)); cout<<(b? "Bisiesto":"No bisiesto"); }\n'
+        ),
+        checker="ignore_trailing_whitespace",
+        time_limit_ms=1000, memory_limit_mb=64,
+    ),
+
+    Exercise(
+        type_="code",
+        question="Lee mes (1..12) y año, y muestra los días del mes (considera febrero bisiesto).",
+        tests_json={
+            "sample": [{"input": "2 2024\n", "output": "29"}],
+            "hidden": [
+                {"input": "2 2023\n", "output": "28"},
+                {"input": "11 2021\n", "output": "30"}
+            ]
+        },
+        hint="Usa switch para 31/30 días y calcula febrero con la regla de año bisiesto.",
+        solution_code=(
+            '#include <iostream>\nusing namespace std;\n'
+            'int main(){ int m; long long y; cin>>m>>y; bool b=(y%400==0)||((y%4==0)&&(y%100!=0));\n'
+            ' int d; switch(m){ case 1: case 3: case 5: case 7: case 8: case 10: case 12: d=31; break;'
+            ' case 4: case 6: case 9: case 11: d=30; break;'
+            ' case 2: d = b?29:28; break; default: d=0; }\n'
+            ' cout<<d; }\n'
+        ),
+        checker="ignore_trailing_whitespace",
+        time_limit_ms=1000, memory_limit_mb=64,
+    ),
+
+    Exercise(
+        type_="code",
+        question="Lee a, un operador (+ - * / %) y b; muestra el resultado (entero). Si hay división o módulo por 0, imprime 'Error'.",
+        tests_json={
+            "sample": [{"input": "8 / 3\n", "output": "2"}],
+            "hidden": [
+                {"input": "7 % 4\n", "output": "3"},
+                {"input": "5 / 0\n", "output": "Error"}
+            ]
+        },
+        hint="Lee como: long long a; char op; long long b; Para '/', usa división entera. Si b==0 en '/' o '%', muestra 'Error'.",
+        solution_code=(
+            '#include <iostream>\nusing namespace std;\n'
+            'int main(){ long long a,b; char op; if(!(cin>>a>>op>>b)) return 0; \n'
+            ' if((op==\'/\'||op==\'%\') && b==0){ cout<<"Error"; return 0; }\n'
+            ' if(op==\'+\') cout<<a+b; else if(op==\'-\') cout<<a-b; else if(op==\'*\') cout<<a*b;\n'
+            ' else if(op==\'/\') cout<<a/b; else if(op==\'%\') cout<<a%b; else cout<<"Error"; }\n'
+        ),
+        checker="ignore_trailing_whitespace",
+        time_limit_ms=1000, memory_limit_mb=64,
+    ),
+
+
+    Exercise(
+        type_="code",
+        question="Lee una calificación entera en [0,10] y muestra 'Excelente' (≥9), 'Aprobado' (≥5) o 'Suspenso' (<5). Si está fuera de rango, muestra 'Error'.",
+        tests_json={
+            "sample": [{"input": "8\n", "output": "Aprobado"}],
+            "hidden": [
+                {"input": "10\n", "output": "Excelente"},
+                {"input": "-1\n", "output": "Error"}
+            ]
+        },
+        hint="Valida 0..10 antes de clasificar.",
+        solution_code=(
+            '#include <iostream>\nusing namespace std;\n'
+            'int main(){ int n; cin>>n; if(n<0||n>10) { cout<<"Error"; }\n'
+            ' else if(n>=9) cout<<"Excelente"; else if(n>=5) cout<<"Aprobado"; else cout<<"Suspenso"; }\n'
+        ),
+        checker="ignore_trailing_whitespace",
+        time_limit_ms=1000, memory_limit_mb=64,
+    ),
+
+    Exercise(
+        type_="code",
+        question="Lee tres enteros a,b,c y muestra 'Equilatero', 'Isosceles', 'Escaleno' o 'No valido' según formen triángulo.",
+        tests_json={
+            "sample": [{"input": "3 3 3\n", "output": "Equilatero"}],
+            "hidden": [
+                {"input": "3 4 5\n", "output": "Escaleno"},
+                {"input": "1 2 3\n", "output": "No valido"}
+            ]
+        },
+        hint="Valida a,b,c>0 y desigualdades del triángulo: a+b>c, a+c>b, b+c>a.",
+        solution_code=(
+            '#include <iostream>\nusing namespace std;\n'
+            'int main(){ long long a,b,c; cin>>a>>b>>c; \n'
+            ' bool ok = (a>0&&b>0&&c>0) && (a+b>c) && (a+c>b) && (b+c>a);\n'
+            ' if(!ok) cout<<"No valido";\n'
+            ' else if(a==b && b==c) cout<<"Equilatero";\n'
+            ' else if(a==b || a==c || b==c) cout<<"Isosceles";\n'
+            ' else cout<<"Escaleno"; }\n'
+        ),
+        checker="ignore_trailing_whitespace",
+        time_limit_ms=1000, memory_limit_mb=64,
+    ),
+
+    Exercise(
+        type_="code",
+        question="Lee un carácter y muestra 'Vocal', 'Consonante' o 'No letra'.",
+        tests_json={
+            "sample": [{"input": "A\n", "output": "Vocal"}],
+            "hidden": [
+                {"input": "b\n", "output": "Consonante"},
+                {"input": "9\n", "output": "No letra"}
+            ]
+        },
+        hint="Usa tolower y isalpha (requiere <cctype>). Vocales: a,e,i,o,u.",
+        solution_code=(
+            '#include <iostream>\n#include <cctype>\nusing namespace std;\n'
+            'int main(){ char c; cin>>c; if(!isalpha((unsigned char)c)){ cout<<"No letra"; return 0; }\n'
+            ' char d=tolower((unsigned char)c); string r=(d==\'a\'||d==\'e\'||d==\'i\'||d==\'o\'||d==\'u\')? "Vocal":"Consonante";\n'
+            ' cout<<r; }\n'
+        ),
+        checker="ignore_trailing_whitespace",
+        time_limit_ms=1000, memory_limit_mb=64,
+    ),
+
+    Exercise(
+        type_="code",
+        question="Lee dos enteros x e y y muestra 'Origen' si (0,0), 'Eje X' si y==0, 'Eje Y' si x==0 o 'Cuadrante I/II/III/IV' según corresponda.",
+        tests_json={
+            "sample": [{"input": "3 -2\n", "output": "Cuadrante IV"}],
+            "hidden": [
+                {"input": "0 0\n", "output": "Origen"},
+                {"input": "0 5\n", "output": "Eje Y"}
+            ]
+        },
+        hint="Recuerda: I(+,+), II(-,+), III(-,-), IV(+,-). Prioriza Origen y ejes antes de cuadrantes.",
+        solution_code=(
+            '#include <iostream>\nusing namespace std;\n'
+            'int main(){ long long x,y; cin>>x>>y; \n'
+            ' if(x==0 && y==0) cout<<"Origen";\n'
+            ' else if(y==0) cout<<"Eje X";\n'
+            ' else if(x==0) cout<<"Eje Y";\n'
+            ' else if(x>0 && y>0) cout<<"Cuadrante I";\n'
+            ' else if(x<0 && y>0) cout<<"Cuadrante II";\n'
+            ' else if(x<0 && y<0) cout<<"Cuadrante III";\n'
+            ' else cout<<"Cuadrante IV"; }\n'
+        ),
+        checker="ignore_trailing_whitespace",
+        time_limit_ms=1000, memory_limit_mb=64,
+    ),
+
+    Exercise(
+        type_="code",
+        question="Lee dos enteros y muestra en dos líneas: primero el menor y después el mayor.",
+        tests_json={
+            "sample": [{"input": "7 9\n", "output": "7\n9"}],
+            "hidden": [
+                {"input": "5 5\n", "output": "5\n5"},
+                {"input": "-3 10\n", "output": "-3\n10"}
+            ]
+        },
+        hint="Puedes calcular min y max con if. El verificador ignora SOLO el salto de línea FINAL.",
+        solution_code=(
+            '#include <iostream>\nusing namespace std;\n'
+            'int main(){ long long a,b; cin>>a>>b; long long mn=a<b?a:b, mx=a>b?a:b; cout<<mn<<"\\n"<<mx; }\n'
+        ),
+        checker="ignore_trailing_newlines",
+        time_limit_ms=1000, memory_limit_mb=64,
+    ),
+
+    Exercise(
+        type_="code",
+        question="Lee tres enteros y muéstralos en orden ascendente separados por un espacio (sin usar sort).",
+        tests_json={
+            "sample": [{"input": "3 1 2\n", "output": "1 2 3"}],
+            "hidden": [
+                {"input": "10 10 7\n", "output": "7 10 10"},
+                {"input": "-1 -5 0\n", "output": "-5 -1 0"}
+            ]
+        },
+        hint="Usa intercambios condicionales con if (p.ej., si a>b entonces intercambia). El verificador tolera salto/espacios finales.",
+        solution_code=(
+            '#include <iostream>\nusing namespace std;\n'
+            'int main(){ long long a,b,c; cin>>a>>b>>c; long long t;\n'
+            ' if(a>b){ t=a; a=b; b=t; }\n'
+            ' if(b>c){ t=b; b=c; c=t; }\n'
+            ' if(a>b){ t=a; a=b; b=t; }\n'
+            ' cout<<a<<" "<<b<<" "<<c; }\n'
+        ),
+        checker="ignore_trailing_whitespace",
+        time_limit_ms=1000, memory_limit_mb=64,
+    ),
+
+    Exercise(
+        type_="code",
+        question="Lee una edad (entero) y muestra 'Gratis' (&lt;4), 'Reducida' (4..12), 'General' (13..64) o 'Senior' (≥65).",
+        tests_json={
+            "sample": [{"input": "12\n", "output": "Reducida"}],
+            "hidden": [
+                {"input": "3\n", "output": "Gratis"},
+                {"input": "70\n", "output": "Senior"}
+            ]
+        },
+        hint="Encadena else-if cubriendo todos los rangos. Verificador tolerante a salto/espacios finales.",
+        solution_code=(
+            '#include <iostream>\nusing namespace std;\n'
+            'int main(){ long long e; cin>>e; if(e<4) cout<<"Gratis"; else if(e<=12) cout<<"Reducida";\n'
+            ' else if(e<=64) cout<<"General"; else cout<<"Senior"; }\n'
+        ),
+        checker="ignore_trailing_whitespace",
+        time_limit_ms=1000, memory_limit_mb=64,
+    ),
+
+    Exercise(
+        type_="code",
+        question="Lee un carácter ('R','A','V') y muestra 'Detente', 'Precaucion' o 'Avanza'. Cualquier otro, 'Desconocido'.",
+        tests_json={
+            "sample": [{"input": "V\n", "output": "Avanza"}],
+            "hidden": [
+                {"input": "A\n", "output": "Precaucion"},
+                {"input": "X\n", "output": "Desconocido"}
+            ]
+        },
+        hint="Usa switch con casos 'R', 'A', 'V'. (No hace falta distinguir mayúsculas/minúsculas.)",
+        solution_code=(
+            '#include <iostream>\nusing namespace std;\n'
+            'int main(){ char c; cin>>c; switch(c){\n'
+            ' case \'R\': cout<<"Detente"; break;\n'
+            ' case \'A\': cout<<"Precaucion"; break;\n'
+            ' case \'V\': cout<<"Avanza"; break;\n'
+            ' default: cout<<"Desconocido"; }\n'
+            ' }\n'
+        ),
+        checker="ignore_trailing_whitespace",
+        time_limit_ms=1000, memory_limit_mb=64,
+    ),
 ]

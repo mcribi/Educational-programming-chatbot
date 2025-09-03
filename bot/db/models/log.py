@@ -1,6 +1,7 @@
 # db/models/log.py
 import sqlalchemy as sa
 from sqlalchemy.dialects.postgresql import JSONB
+from sqlalchemy.orm import relationship
 from db.base import Base
 
 class Log(Base):
@@ -16,8 +17,10 @@ class Log(Base):
     func       = sa.Column(sa.String(200), nullable=True)
     pathname   = sa.Column(sa.String(500), nullable=True)
     lineno     = sa.Column(sa.Integer, nullable=True)
-    user_id    = sa.Column(sa.Integer, nullable=True)          # to link to the user
-    context    = sa.Column(JSONB, nullable=True)              
+    user_id    = sa.Column(sa.Integer, sa.ForeignKey("users.id", ondelete="SET NULL"), nullable=True, index=True,)
+    context    = sa.Column(JSONB, nullable=True)       
+
+    user = relationship("User", foreign_keys=[user_id], passive_deletes=True)     
 
     __table_args__ = (
         sa.Index("ix_app_logs_created_at", "created_at"),

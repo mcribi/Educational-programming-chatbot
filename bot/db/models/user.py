@@ -13,3 +13,4 @@ class User(Base):
     created_at = Column(DateTime, default=lambda: datetime.now(timezone.utc))
 
     attempts = relationship("Attempt", back_populates="user") #in the class attempt there will be a attribute called user
+    suggestions = relationship("Suggestion", back_populates="user")

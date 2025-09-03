@@ -457,4 +457,265 @@ exercises_vectors = [
         answer="3",
         explanation="El valor mínimo es 2, en la posición 3."
     ),
+    
+    Exercise(
+        type_="code",
+        question="Lee n y luego n enteros. Muestra la suma total.",
+        tests_json={
+            "sample": [{"input": "5\n1 2 3 4 5\n", "output": "15"}],
+            "hidden": [
+                {"input": "3\n-1 0 1\n", "output": "0"},
+                {"input": "1\n1000000000\n", "output": "1000000000"}
+            ]
+        },
+        hint="Usa long long para evitar overflow. Salida: una línea con la suma.",
+        solution_code=(
+            '#include <iostream>\nusing namespace std;\n'
+            'int main(){ int n; if(!(cin>>n)) return 0; long long s=0,x; for(int i=0;i<n;i++){cin>>x; s+=x;} cout<<s; }\n'
+        ),
+        checker="ignore_trailing_whitespace", time_limit_ms=1000, memory_limit_mb=64,
+    ),
+
+    Exercise(
+        type_="code",
+        question="Lee n y n enteros. Muestra el mínimo y su primera posición (índice 0).",
+        tests_json={
+            "sample": [{"input": "5\n7 4 4 9 -1\n", "output": "-1 4"}],
+            "hidden": [
+                {"input": "3\n5 5 5\n", "output": "5 0"},
+                {"input": "4\n10 2 2 3\n", "output": "2 1"}
+            ]
+        },
+        hint="Guarda valor y pos actuales; actualiza si encuentras un valor menor. Salida: '<min> <pos>'.",
+        solution_code=(
+            '#include <iostream>\nusing namespace std;\n'
+            'int main(){ int n; cin>>n; long long v, mn; int pos=0; for(int i=0;i<n;i++){cin>>v; if(i==0||v<mn){mn=v; pos=i;}} cout<<mn<<\" \"<<pos; }\n'
+        ),
+        checker="ignore_trailing_whitespace", time_limit_ms=1000, memory_limit_mb=64,
+    ),
+
+    Exercise(
+        type_="code",
+        question="Lee n y n enteros. Muestra 'pares impares' (0 cuenta como par).",
+        tests_json={
+            "sample": [{"input": "6\n1 2 3 4 5 6\n", "output": "3 3"}],
+            "hidden": [
+                {"input": "3\n0 0 1\n", "output": "2 1"},
+                {"input": "5\n-1 -2 -3 -4 -5\n", "output": "2 3"}
+            ]
+        },
+        hint="Usa %2 sobre el valor absoluto o directamente v%2==0 para par. Una línea: 'P I'.",
+        solution_code=(
+            '#include <iostream>\nusing namespace std;\n'
+            'int main(){ int n; cin>>n; long long x; int cp=0, ci=0; for(int i=0;i<n;i++){cin>>x; if(x%2==0) cp++; else ci++;} cout<<cp<<\" \"<<ci; }\n'
+        ),
+        checker="ignore_trailing_whitespace", time_limit_ms=1000, memory_limit_mb=64,
+    ),
+
+    Exercise(
+        type_="code",
+        question="Lee n y n enteros. Imprime los elementos en orden inverso en una sola línea separados por un espacio.",
+        tests_json={
+            "sample": [{"input": "5\n1 2 3 4 5\n", "output": "5 4 3 2 1"}],
+            "hidden": [
+                {"input": "1\n9\n", "output": "9"},
+                {"input": "3\n10 10 20\n", "output": "20 10 10"}
+            ]
+        },
+        hint="Puedes guardar en un vector/array y recorrer de n-1 a 0. Controla espacios con (i?\" \":\"\").",
+        solution_code=(
+            '#include <iostream>\nusing namespace std;\n'
+            'int main(){ int n; cin>>n; long long a[100005]; for(int i=0;i<n;i++) cin>>a[i]; '
+            'for(int i=n-1;i>=0;i--){ if(i!=n-1) cout<<\" \"; cout<<a[i]; } }\n'
+        ),
+        checker="ignore_trailing_whitespace", time_limit_ms=1200, memory_limit_mb=64,
+    ),
+
+    Exercise(
+        type_="code",
+        question="Lee n y n enteros. Muestra la suma de los elementos en posiciones de índice par (0,2,4,...).",
+        tests_json={
+            "sample": [{"input": "5\n1 2 3 4 5\n", "output": "9"}],
+            "hidden": [
+                {"input": "4\n0 1 0 1\n", "output": "0"},
+                {"input": "6\n-1 -1 -1 -1 -1 -1\n", "output": "-3"}
+            ]
+        },
+        hint="Recorre i de 0 a n-1 sumando cuando i%2==0. Una única línea.",
+        solution_code=(
+            '#include <iostream>\nusing namespace std;\n'
+            'int main(){ int n; cin>>n; long long s=0,x; for(int i=0;i<n;i++){cin>>x; if(i%2==0) s+=x;} cout<<s; }\n'
+        ),
+        checker="ignore_trailing_whitespace", time_limit_ms=1000, memory_limit_mb=64,
+    ),
+
+    Exercise(
+        type_="code",
+        question="Lee n y n enteros. Muestra la longitud de la racha más larga de valores iguales consecutivos.",
+        tests_json={
+            "sample": [{"input": "7\n1 1 2 2 2 3 3\n", "output": "3"}],
+            "hidden": [
+                {"input": "1\n5\n", "output": "1"},
+                {"input": "6\n7 7 7 7 7 7\n", "output": "6"}
+            ]
+        },
+        hint="Ve comparando con el anterior y reinicia/actualiza la mejor racha.",
+        solution_code=(
+            '#include <iostream>\nusing namespace std;\n'
+            'int main(){ int n; cin>>n; long long prev, x; int best=0, cur=0; for(int i=0;i<n;i++){cin>>x; if(i==0||x!=prev){cur=1;} else cur++; prev=x; if(cur>best) best=cur;} cout<<best; }\n'
+        ),
+        checker="ignore_trailing_whitespace", time_limit_ms=1200, memory_limit_mb=64,
+    ),
+
+    Exercise(
+        type_="code",
+        question="Lee n y n enteros. Rota el array a la derecha una posición y muéstralo en una línea.",
+        tests_json={
+            "sample": [{"input": "5\n1 2 3 4 5\n", "output": "5 1 2 3 4"}],
+            "hidden": [
+                {"input": "3\n9 8 7\n", "output": "7 9 8"},
+                {"input": "1\n42\n", "output": "42"}
+            ]
+        },
+        hint="Guarda el último en un temporal; recorre de derecha a izquierda. Imprime con espacios.",
+        solution_code=(
+            '#include <iostream>\nusing namespace std;\n'
+            'int main(){ int n; cin>>n; long long a[100005]; for(int i=0;i<n;i++) cin>>a[i]; '
+            'if(n>0){ long long t=a[n-1]; for(int i=n-1;i>0;i--) a[i]=a[i-1]; a[0]=t; } '
+            'for(int i=0;i<n;i++){ if(i) cout<<\" \"; cout<<a[i]; } }\n'
+        ),
+        checker="ignore_trailing_whitespace", time_limit_ms=1200, memory_limit_mb=64,
+    ),
+
+    Exercise(
+        type_="code",
+        question="Lee n y n enteros. Cuenta cuántas veces dos vecinos tienen signos opuestos estrictos (v[i-1]*v[i] < 0).",
+        tests_json={
+            "sample": [{"input": "7\n-1 2 -3 4 5 -6 7\n", "output": "5"}],
+            "hidden": [
+                {"input": "5\n1 2 3 4 5\n", "output": "0"},
+                {"input": "4\n-1 0 1 0\n", "output": "0"}
+            ]
+        },
+        hint="No cuentes cambios si hay ceros (producto==0).",
+        solution_code=(
+            '#include <iostream>\nusing namespace std;\n'
+            'int main(){ int n; cin>>n; long long prev,x; int c=0; for(int i=0;i<n;i++){cin>>x; if(i>0 && prev*x<0) c++; prev=x;} cout<<c; }\n'
+        ),
+        checker="ignore_trailing_whitespace", time_limit_ms=1000, memory_limit_mb=64,
+    ),
+
+    Exercise(
+        type_="code",
+        question="Lee n y n enteros. Muestra la suma acumulada (prefijos) en una línea.",
+        tests_json={
+            "sample": [{"input": "4\n1 2 3 4\n", "output": "1 3 6 10"}],
+            "hidden": [
+                {"input": "3\n-1 -1 -1\n", "output": "-1 -2 -3"},
+                {"input": "1\n5\n", "output": "5"}
+            ]
+        },
+        hint="Mantén un acumulador y ve imprimiendo con separadores.",
+        solution_code=(
+            '#include <iostream>\nusing namespace std;\n'
+            'int main(){ int n; cin>>n; long long s=0,x; for(int i=0;i<n;i++){cin>>x; s+=x; if(i) cout<<\" \"; cout<<s;} }\n'
+        ),
+        checker="ignore_trailing_whitespace", time_limit_ms=1000, memory_limit_mb=64,
+    ),
+
+    Exercise(
+        type_="code",
+        question="Lee n y n enteros. Ordénalos en orden ascendente y muéstralos en una línea.",
+        tests_json={
+            "sample": [{"input": "5\n5 4 3 2 1\n", "output": "1 2 3 4 5"}],
+            "hidden": [
+                {"input": "4\n2 2 1 1\n", "output": "1 1 2 2"},
+                {"input": "3\n0 -1 0\n", "output": "-1 0 0"}
+            ]
+        },
+        hint="Evita librerías extra: usa selección/burbuja simples (O(n^2)).",
+        solution_code=(
+            '#include <iostream>\nusing namespace std;\n'
+            'int main(){ int n; cin>>n; long long a[1005]; for(int i=0;i<n;i++) cin>>a[i]; '
+            'for(int i=0;i<n;i++){ int p=i; for(int j=i+1;j<n;j++) if(a[j]<a[p]) p=j; long long t=a[i]; a[i]=a[p]; a[p]=t; } '
+            'for(int i=0;i<n;i++){ if(i) cout<<\" \"; cout<<a[i]; } }\n'
+        ),
+        checker="ignore_trailing_whitespace", time_limit_ms=1500, memory_limit_mb=64,
+    ),
+
+    Exercise(
+        type_="code",
+        question="Lee n, n enteros y luego x. Muestra la primera posición (índice 0) de x o -1 si no está.",
+        tests_json={
+            "sample": [{"input": "5\n1 2 3 2 1\n2\n", "output": "1"}],
+            "hidden": [
+                {"input": "4\n0 0 0 0\n1\n", "output": "-1"},
+                {"input": "3\n5 6 7\n7\n", "output": "2"}
+            ]
+        },
+        hint="Recorre linealmente y termina al encontrar la primera coincidencia.",
+        solution_code=(
+            '#include <iostream>\nusing namespace std;\n'
+            'int main(){ int n; cin>>n; long long a[100005]; for(int i=0;i<n;i++) cin>>a[i]; long long x; cin>>x; int pos=-1; for(int i=0;i<n;i++){ if(a[i]==x){ pos=i; break; }} cout<<pos; }\n'
+        ),
+        checker="ignore_trailing_whitespace", time_limit_ms=1000, memory_limit_mb=64,
+    ),
+
+    Exercise(
+        type_="code",
+        question="Lee n, luego n enteros del vector A y n enteros del vector B. Muestra el producto escalar A·B.",
+        tests_json={
+            "sample": [{"input": "3\n1 2 3\n4 5 6\n", "output": "32"}],
+            "hidden": [
+                {"input": "2\n-1 2\n3 -4\n", "output": "-11"},
+                {"input": "1\n1000000000\n1000000000\n", "output": "1000000000000000000"}
+            ]
+        },
+        hint="Usa long long para evitar overflow: acumula a[i]*b[i] en un long long.",
+        solution_code=(
+            '#include <iostream>\nusing namespace std;\n'
+            'int main(){ int n; cin>>n; long long a[100005], b[100005]; for(int i=0;i<n;i++) cin>>a[i]; for(int i=0;i<n;i++) cin>>b[i]; '
+            'long long s=0; for(int i=0;i<n;i++) s += a[i]*b[i]; cout<<s; }\n'
+        ),
+        checker="ignore_trailing_whitespace", time_limit_ms=1200, memory_limit_mb=64,
+    ),
+
+    Exercise(
+        type_="code",
+        question="Lee n y n enteros. Imprime 'SI' si el array es palíndromo (simétrico) o 'NO' en caso contrario.",
+        tests_json={
+            "sample": [{"input": "5\n1 2 3 2 1\n", "output": "SI"}],
+            "hidden": [
+                {"input": "4\n1 2 2 3\n", "output": "NO"},
+                {"input": "1\n7\n", "output": "SI"}
+            ]
+        },
+        hint="Compara v[i] con v[n-1-i] para i en [0,n/2).",
+        solution_code=(
+            '#include <iostream>\nusing namespace std;\n'
+            'int main(){ int n; cin>>n; long long v[100005]; for(int i=0;i<n;i++) cin>>v[i]; bool ok=true; for(int i=0;i<n/2;i++) if(v[i]!=v[n-1-i]){ ok=false; break; } cout<<(ok?\"SI\":\"NO\"); }\n'
+        ),
+        checker="ignore_trailing_whitespace", time_limit_ms=1000, memory_limit_mb=64,
+    ),
+
+    Exercise(
+        type_="code",
+        question="Lee n y n enteros. Intercambia los valores de las posiciones del mínimo y del máximo (primeros en caso de empate) y muestra el array resultante en una línea.",
+        tests_json={
+            "sample": [{"input": "5\n5 4 3 2 1\n", "output": "1 4 3 2 5"}],
+            "hidden": [
+                {"input": "4\n2 2 1 1\n", "output": "1 2 2 1"},
+                {"input": "3\n0 -1 0\n", "output": "0 0 -1"}
+            ]
+        },
+        hint="Localiza posMin y posMax con un solo recorrido. Luego haz un swap simple y imprime con espacios.",
+        solution_code=(
+            '#include <iostream>\nusing namespace std;\n'
+            'int main(){ int n; cin>>n; long long a[100005]; for(int i=0;i<n;i++) cin>>a[i]; '
+            'int pMin=0, pMax=0; for(int i=1;i<n;i++){ if(a[i]<a[pMin]) pMin=i; if(a[i]>a[pMax]) pMax=i; } '
+            'long long t=a[pMin]; a[pMin]=a[pMax]; a[pMax]=t; '
+            'for(int i=0;i<n;i++){ if(i) cout<<\" \"; cout<<a[i]; } }\n'
+        ),
+        checker="ignore_trailing_whitespace", time_limit_ms=1200, memory_limit_mb=64,
+    ),
 ]

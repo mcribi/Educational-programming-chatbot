@@ -259,5 +259,287 @@ exercises_class = [
         answer="Porque asegura que al borrar un objeto derivado vía puntero a base se llame al destructor correcto",
         explanation="Evita fugas de memoria y asegura liberación completa de recursos."
     ),
+    Exercise(
+        type_="code",
+        question="Define una clase Punto con miembros públicos int x,y. Lee x e y y muestra la suma x+y.",
+        tests_json={
+            "sample": [{"input": "2 5\n", "output": "7"}],
+            "hidden": [
+                {"input": "0 0\n", "output": "0"},
+                {"input": "-3 10\n", "output": "7"}
+            ]
+        },
+        hint="Declara class Punto { public: int x,y; }; Crea un objeto, asígnale x e y y muestra x+y en UNA línea.",
+        solution_code=(
+            '#include <iostream>\nusing namespace std;\n'
+            'class Punto{ public: int x,y; };\n'
+            'int main(){ Punto p; cin>>p.x>>p.y; cout<<(p.x+p.y); }\n'
+        ),
+        checker="ignore_trailing_whitespace", time_limit_ms=1000, memory_limit_mb=64,
+    ),
+
+    Exercise(
+        type_="code",
+        question="Clase Contador con atributo privado v. Constructor a 0, método inc() y get(). Lee n e incrementa n veces; muestra el valor.",
+        tests_json={
+            "sample": [{"input": "5\n", "output": "5"}],
+            "hidden": [
+                {"input": "0\n", "output": "0"},
+                {"input": "100\n", "output": "100"}
+            ]
+        },
+        hint="Encapsula v como private. inc() no recibe parámetros. get() devuelve el valor.",
+        solution_code=(
+            '#include <iostream>\nusing namespace std;\n'
+            'class Contador{ int v; public: Contador():v(0){} void inc(){++v;} int get() const {return v;} };\n'
+            'int main(){ int n; if(!(cin>>n)) return 0; Contador c; while(n--) c.inc(); cout<<c.get(); }\n'
+        ),
+        checker="ignore_trailing_whitespace", time_limit_ms=1000, memory_limit_mb=64,
+    ),
+
+    Exercise(
+        type_="code",
+        question="Clase Rectangulo (ancho, alto privados). Constructor (w,h), métodos area() y perimetro(). Lee w h y muestra área y perímetro en dos líneas.",
+        tests_json={
+            "sample": [{"input": "3 4\n", "output": "12\n14"}],
+            "hidden": [
+                {"input": "7 1\n", "output": "7\n16"},
+                {"input": "0 5\n", "output": "0\n10"}
+            ]
+        },
+        hint="Usa long long para evitar overflow. Formato: primera línea área, segunda perímetro. Sin espacios extra al final de cada línea.",
+        solution_code=(
+            '#include <iostream>\nusing namespace std;\n'
+            'class Rectangulo{ long long w,h; public: Rectangulo(long long W,long long H):w(W),h(H){} '
+            'long long area() const {return w*h;} long long perimetro() const {return 2*(w+h);} };\n'
+            'int main(){ long long w,h; cin>>w>>h; Rectangulo r(w,h); cout<<r.area()<<\"\\n\"<<r.perimetro(); }\n'
+        ),
+        checker="ignore_trailing_newlines", time_limit_ms=1000, memory_limit_mb=64,
+    ),
+
+    Exercise(
+        type_="code",
+        question="Clase Circulo (radio double). Métodos area() y longitud(). Lee r y muestra área y longitud con 6 decimales en dos líneas.",
+        tests_json={
+            "sample": [{"input": "1\n", "output": "3.141593\n6.283185"}],
+            "hidden": [
+                {"input": "0\n", "output": "0.000000\n0.000000"},
+                {"input": "2.5\n", "output": "19.634955\n15.707963"}
+            ]
+        },
+        hint="Usa const double PI=3.141592653589793; y iomanip (fixed, setprecision(6)).",
+        solution_code=(
+            '#include <iostream>\n#include <iomanip>\nusing namespace std;\n'
+            'class Circulo{ double r; public: explicit Circulo(double R):r(R){} '
+            'double area() const { const double PI=3.141592653589793; return PI*r*r; } '
+            'double longitud() const { const double PI=3.141592653589793; return 2*PI*r; } };\n'
+            'int main(){ double r; cin>>r; Circulo c(r); cout.setf(ios::fixed); '
+            'cout<<setprecision(6)<<c.area()<<\"\\n\"<<setprecision(6)<<c.longitud(); }\n'
+        ),
+        checker="ignore_trailing_newlines", time_limit_ms=1200, memory_limit_mb=64,
+    ),
+
+    Exercise(
+        type_="code",
+        question="Clase Persona con nombre (string) y edad (int), privados. Lee línea completa para nombre y luego edad. Muestra: 'Nombre: <nombre>, Edad: <edad>'.",
+        tests_json={
+            "sample": [{"input": "Ada Lovelace\n36\n", "output": "Nombre: Ada Lovelace, Edad: 36"}],
+            "hidden": [
+                {"input": "Alan Turing\n41\n", "output": "Nombre: Alan Turing, Edad: 41"},
+                {"input": "Grace Hopper\n85\n", "output": "Nombre: Grace Hopper, Edad: 85"}
+            ]
+        },
+        hint="Primero getline para el nombre (con espacios), luego la edad con cin. Formato exacto con coma y espacio.",
+        solution_code=(
+            '#include <iostream>\n#include <string>\nusing namespace std;\n'
+            'class Persona{ string n; int e; public: void set(const string& name,int age){n=name;e=age;} '
+            'string nombre() const {return n;} int edad() const {return e;} };\n'
+            'int main(){ ios::sync_with_stdio(false); cin.tie(nullptr); string nombre; getline(cin,nombre); int edad; cin>>edad; '
+            'Persona p; p.set(nombre,edad); cout<<\"Nombre: \"<<p.nombre()<<\", Edad: \"<<p.edad(); }\n'
+        ),
+        checker="ignore_trailing_whitespace", time_limit_ms=1200, memory_limit_mb=64,
+    ),
+
+    Exercise(
+        type_="code",
+        question="Cuenta con saldo (long long). Lee saldo inicial, ingreso y retirada. Si la retirada deja saldo negativo, imprime 'ERROR'; si no, imprime el saldo final.",
+        tests_json={
+            "sample": [{"input": "100\n50\n70\n", "output": "80"}],
+            "hidden": [
+                {"input": "0\n0\n0\n", "output": "0"},
+                {"input": "10\n5\n20\n", "output": "ERROR"}
+            ]
+        },
+        hint="Métodos depositar(x) y retirar(y). Si retirar no es posible, no modifiques el saldo y muestra 'ERROR'.",
+        solution_code=(
+            '#include <iostream>\nusing namespace std;\n'
+            'class Cuenta{ long long s; public: explicit Cuenta(long long S):s(S){} '
+            'void depositar(long long x){ s+=x; } bool retirar(long long y){ if(s<y) return false; s-=y; return true; } '
+            'long long saldo() const { return s; } };\n'
+            'int main(){ long long s,i,r; cin>>s>>i>>r; Cuenta c(s); c.depositar(i); '
+            'if(!c.retirar(r)) cout<<\"ERROR\"; else cout<<c.saldo(); }\n'
+        ),
+        checker="ignore_trailing_whitespace", time_limit_ms=1200, memory_limit_mb=64,
+    ),
+
+    Exercise(
+        type_="code",
+        question="Clase Fraccion(n,d) con método simplificar(). Lee n y d (enteros, d≠0) y muestra la fracción irreducible en formato 'a/b' con el signo sólo en el numerador.",
+        tests_json={
+            "sample": [{"input": "8 12\n", "output": "2/3"}],
+            "hidden": [
+                {"input": "-2 4\n", "output": "-1/2"},
+                {"input": "3 -6\n", "output": "-1/2"},
+                {"input": "-2 -4\n", "output": "1/2"},
+                {"input": "0 5\n", "output": "0/1"}
+            ]
+        },
+        hint="Implementa gcd iterativo (evita std::gcd si prefieres). Normaliza signo (denominador positivo) y 0/d → 0/1.",
+        solution_code=(
+            '#include <iostream>\nusing namespace std;\n'
+            'long long gcdll(long long a,long long b){ if(a<0) a=-a; if(b<0) b=-b; while(b){ long long t=a%b; a=b; b=t; } return a? a:1; }\n'
+            'class Fraccion{ long long n,d; public: Fraccion(long long N,long long D):n(N),d(D){} '
+            'void simplificar(){ if(n==0){ d=1; return; } long long g=gcdll(n,d); n/=g; d/=g; if(d<0){ d=-d; n=-n; } } '
+            'void print() const { cout<<n<<\"/\"<<d; } };\n'
+            'int main(){ long long n,d; cin>>n>>d; Fraccion f(n,d); f.simplificar(); f.print(); }\n'
+        ),
+        checker="ignore_trailing_whitespace", time_limit_ms=1500, memory_limit_mb=64,
+    ),
+
+    Exercise(
+        type_="code",
+        question="Clase Vector3(double x,y,z) con método norma(). Lee x y z y muestra la norma con 6 decimales.",
+        tests_json={
+            "sample": [{"input": "1 2 2\n", "output": "3.000000"}],
+            "hidden": [
+                {"input": "0 0 0\n", "output": "0.000000"},
+                {"input": "3 4 12\n", "output": "13.000000"}
+            ]
+        },
+        hint="norma = sqrt(x*x + y*y + z*z). Usa fixed y setprecision(6).",
+        solution_code=(
+            '#include <iostream>\n#include <iomanip>\n#include <cmath>\nusing namespace std;\n'
+            'class Vector3{ double x,y,z; public: Vector3(double X,double Y,double Z):x(X),y(Y),z(Z){} '
+            'double norma() const { return sqrt(x*x+y*y+z*z); } };\n'
+            'int main(){ double x,y,z; cin>>x>>y>>z; Vector3 v(x,y,z); cout.setf(ios::fixed); cout<<setprecision(6)<<v.norma(); }\n'
+        ),
+        checker="ignore_trailing_whitespace", time_limit_ms=1200, memory_limit_mb=64,
+    ),
+
+    Exercise(
+        type_="code",
+        question="Clase Rango [a,b] con método bool contiene(int x) const. Lee a, b, x y muestra 'SI' si x está en [a,b], si no 'NO'.",
+        tests_json={
+            "sample": [{"input": "3 7 5\n", "output": "SI"}],
+            "hidden": [
+                {"input": "3 7 8\n", "output": "NO"},
+                {"input": "-5 -1 -5\n", "output": "SI"}
+            ]
+        },
+        hint="Asume a <= b. Imprime exactamente 'SI' o 'NO' en UNA línea.",
+        solution_code=(
+            '#include <iostream>\nusing namespace std;\n'
+            'class Rango{ long long a,b; public: Rango(long long A,long long B):a(A),b(B){} '
+            'bool contiene(long long x) const { return a<=x && x<=b; } };\n'
+            'int main(){ long long a,b,x; cin>>a>>b>>x; Rango r(a,b); cout<<(r.contiene(x)?\"SI\":\"NO\"); }\n'
+        ),
+        checker="ignore_trailing_whitespace", time_limit_ms=800, memory_limit_mb=64,
+    ),
+
+    Exercise(
+        type_="code",
+        question="Clase Acum con valor entero inicial 0. Métodos add(int) y get(). add devuelve referencia a *this para encadenar. Lee a,b,c y muestra el acumulado tras add(a).add(b).add(c).",
+        tests_json={
+            "sample": [{"input": "3 4 5\n", "output": "12"}],
+            "hidden": [
+                {"input": "0 0 0\n", "output": "0"},
+                {"input": "-1 2 -3\n", "output": "-2"}
+            ]
+        },
+        hint="Firma: Acum& add(int k){ v+=k; return *this; } get() const devuelve v.",
+        solution_code=(
+            '#include <iostream>\nusing namespace std;\n'
+            'class Acum{ long long v; public: Acum():v(0){} Acum& add(long long k){ v+=k; return *this; } long long get() const {return v;} };\n'
+            'int main(){ long long a,b,c; cin>>a>>b>>c; Acum ac; ac.add(a).add(b).add(c); cout<<ac.get(); }\n'
+        ),
+        checker="ignore_trailing_whitespace", time_limit_ms=800, memory_limit_mb=64,
+    ),
+
+    Exercise(
+        type_="code",
+        question="Clase A con contador estático de instancias (se incrementa en el constructor). Lee n, crea n objetos (por ejemplo dentro de un bucle) y muestra A::get().",
+        tests_json={
+            "sample": [{"input": "5\n", "output": "5"}],
+            "hidden": [
+                {"input": "0\n", "output": "0"},
+                {"input": "13\n", "output": "13"}
+            ]
+        },
+        hint="static int c; en la clase + definición fuera: int A::c=0;. Un método estático get() devuelve c.",
+        solution_code=(
+            '#include <iostream>\nusing namespace std;\n'
+            'class A{ static int c; public: A(){ ++c; } static int get(){ return c; } }; int A::c=0;\n'
+            'int main(){ int n; cin>>n; for(int i=0;i<n;i++){ A tmp; } cout<<A::get(); }\n'
+        ),
+        checker="ignore_trailing_whitespace", time_limit_ms=800, memory_limit_mb=64,
+    ),
+
+    Exercise(
+        type_="code",
+        question="Clase Punto(double x,y) con método distancia() const al origen. Lee x y y muestra la distancia con 6 decimales.",
+        tests_json={
+            "sample": [{"input": "3 4\n", "output": "5.000000"}],
+            "hidden": [
+                {"input": "0 0\n", "output": "0.000000"},
+                {"input": "-6 8\n", "output": "10.000000"}
+            ]
+        },
+        hint="distancia = sqrt(x*x + y*y). Usa fixed y setprecision(6).",
+        solution_code=(
+            '#include <iostream>\n#include <iomanip>\n#include <cmath>\nusing namespace std;\n'
+            'class Punto{ double x,y; public: Punto(double X,double Y):x(X),y(Y){} double distancia() const { return sqrt(x*x+y*y); } };\n'
+            'int main(){ double x,y; cin>>x>>y; Punto p(x,y); cout.setf(ios::fixed); cout<<setprecision(6)<<p.distancia(); }\n'
+        ),
+        checker="ignore_trailing_whitespace", time_limit_ms=800, memory_limit_mb=64,
+    ),
+
+    Exercise(
+        type_="code",
+        question="Clase Par con dos enteros privados a,b. Métodos set(a,b), swap(), getA(), getB(). Lee a b, intercambia y muestra los valores finales en UNA línea separados por un espacio.",
+        tests_json={
+            "sample": [{"input": "7 9\n", "output": "9 7"}],
+            "hidden": [
+                {"input": "0 0\n", "output": "0 0"},
+                {"input": "-3 10\n", "output": "10 -3"}
+            ]
+        },
+        hint="Implementa swap manualmente (variable temporal) o con std::swap.",
+        solution_code=(
+            '#include <iostream>\nusing namespace std;\n'
+            'class Par{ long long a,b; public: void set(long long A,long long B){a=A;b=B;} void swapv(){ long long t=a; a=b; b=t; } '
+            'long long getA() const {return a;} long long getB() const {return b;} };\n'
+            'int main(){ long long a,b; cin>>a>>b; Par p; p.set(a,b); p.swapv(); cout<<p.getA()<<\" \"<<p.getB(); }\n'
+        ),
+        checker="ignore_trailing_whitespace", time_limit_ms=800, memory_limit_mb=64,
+    ),
+
+    Exercise(
+        type_="code",
+        question="Clase Termometro con Celsius (double). Método getFahrenheit(). Lee C y muestra F con 2 decimales.",
+        tests_json={
+            "sample": [{"input": "0\n", "output": "32.00"}],
+            "hidden": [
+                {"input": "100\n", "output": "212.00"},
+                {"input": "-40\n", "output": "-40.00"}
+            ]
+        },
+        hint="F = C*9/5 + 32. Formatea con fixed y setprecision(2).",
+        solution_code=(
+            '#include <iostream>\n#include <iomanip>\nusing namespace std;\n'
+            'class Termometro{ double c; public: explicit Termometro(double C):c(C){} double getFahrenheit() const { return c*9.0/5.0+32.0; } };\n'
+            'int main(){ double c; cin>>c; Termometro t(c); cout.setf(ios::fixed); cout<<setprecision(2)<<t.getFahrenheit(); }\n'
+        ),
+        checker="ignore_trailing_whitespace", time_limit_ms=800, memory_limit_mb=64,
+    ),
 
 ]
