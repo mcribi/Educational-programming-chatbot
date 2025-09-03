@@ -46,47 +46,6 @@ def _is_waiting_mcq(context: ContextTypes.DEFAULT_TYPE) -> bool:
 
 
 
-# async def route_text_or_answer(update: Update, context: ContextTypes.DEFAULT_TYPE):
-#     """
-#     Routing rules:
-#     1) If EXAM is active -> delegate to handle_text (there we capture code without backticks and suggestions).
-#     2) If you are practising “code” (outside EXAM) -> handle_code_message.
-#     3) If you are in a test and there are options loaded -> handle_response.
-#     4) In any other case:
-#        - try searching for concepts (handle_search_text)
-#        - if it does not apply or there is no result, handle_text will manage it (registration, suggestions, greetings, etc.).
-#     """
-#     # Active exam: all text is processed by handle_text (code capture/suggestions/logging)
-#     if context.user_data.get("exam", {}).get("active"):
-#         await handle_text(update, context)
-#         return
-
-#     #  Practice outside of exams
-#     if context.user_data.get("current_topic"):
-#         if context.user_data.get("current_mode") == "code":
-#             #Programming: we capture code (with/without cpp)
-#             await handle_code_message(update, context)
-#             return
-#         else:
-#             #Test: only if there is actually a question waiting (with options)
-#             if _is_waiting_mcq(context):
-#                 await handle_response(update, context)
-#                 return
-#             #If there is no question waiting, we treat the text as a search or chat.
-
-#     # Generic text: first try searching for concepts, if not, menu.handle_text
-#     try:
-#         handled = await handle_search_text(update, context)  # should return True/False if you implemented that pattern
-#         if handled:
-#             return
-#     except TypeError:
-#         # If your handle_search_text does not return bool, simply try and continue.
-#         await handle_search_text(update, context)
-#         return
-
-#     # If it was not a valid search, let menu.handle_text handle it (suggestions, registration, greetings, etc.).
-#     await handle_text(update, context)
-
 async def route_text_or_answer(update: Update, context: ContextTypes.DEFAULT_TYPE):
     # suggestions 
     if context.user_data.get("awaiting_suggestion"):
@@ -168,7 +127,7 @@ if __name__ == "__main__":
     listener = QueueListener(q, db_handler, respect_handler_level=True)
     listener.start()
 
-    # Route Python warnings into logging (optional)
+    #route python warnings into logging
     logging.captureWarnings(True)
 
     #Initial data population (after logging is ready)
@@ -186,7 +145,7 @@ if __name__ == "__main__":
     app.add_handler(CommandHandler("start", start))
     app.add_handler(CallbackQueryHandler(handle_callback))
 
-    # Commands (code mode, suggest...)
+    # Commands 
     app.add_handler(CommandHandler("run", cmd_run))
     app.add_handler(CommandHandler("submit", cmd_submit))
     app.add_handler(CommandHandler("solution", cmd_solution))
