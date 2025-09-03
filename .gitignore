@@ -8,3 +8,4 @@ postgres_data/
 .vscode/
 .idea/
 *.zip
+_bind_mount_test.txt

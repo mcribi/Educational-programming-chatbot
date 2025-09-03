@@ -39,32 +39,27 @@ EXAM_POINTS_CODE_EACH = 1.0   # 5 points of programming
 
 GREETINGS = ["hola", "ola", "buenas", "hey", "holi", "hello", "saludos", "qué tal", "start"]
 
-# ---- Helpers for code-mode ---------------------------------------------------
-def _pick_next_code_exercise(session, user_id: int, topic_name: str):
-    """
-    Pick next 'code' exercise for the given topic.
-    Preference order:
-      1) exercises never solved (no Attempt with is_correct = True)
-      2) else any 'code' exercise in topic (ordered by id)
-    Returns Exercise row or None.
-    """
+# Helpers for code mode
+def _pick_next_code_exercise(session, user_id: int, topic_name: str, exclude_ids: set[int] | tuple[int, ...] = ()):
     topic = session.query(Topic).filter(Topic.name == topic_name).one_or_none()
     if not topic:
         return None
 
-    # All code exercises in this topic
     exercises = (
         session.query(Exercise)
         .filter(Exercise.topic_id == topic.id, Exercise.type == "code")
-        .order_by(Exercise.id.asc())
         .all()
     )
+    random.shuffle(exercises)
     if not exercises:
         return None
 
-    # Prefer exercises without a correct attempt
+    exclude_ids = set(exclude_ids or ())
+
+    # Prefer no resolved and no excluded
     for ex in exercises:
-        # Is there a correct attempt for this user+exercise?
+        if ex.id in exclude_ids:
+            continue
         ok = (
             session.query(Attempt)
             .filter(Attempt.user_id == user_id, Attempt.exercise_id == ex.id, Attempt.is_correct.is_(True))
@@ -73,8 +68,14 @@ def _pick_next_code_exercise(session, user_id: int, topic_name: str):
         if not ok:
             return ex
 
-    # If all were solved, just return the first one (user can practice again)
+    # if are all resolved, everyone is not excluded
+    for ex in exercises:
+        if ex.id not in exclude_ids:
+            return ex
+
+    # Fallback, if there is only one and it is excluded, returns that
     return exercises[0]
+
 
 def _pre(s: str) -> str:
     # Render sure for blocks monospaces
@@ -87,9 +88,8 @@ async def _send_code_prompt(query_or_update, context, ex: Exercise):
     - sample input/output (first sample)
     - limits + short instructions
     - inline buttons: ℹ️ Ayuda, 🔁 Siguiente, ⬅ Volver
-    (Usa HTML + escape para evitar errores de parseo de Telegram)
     """
-    #Sample (NO strip: preserve significant spaces) 
+    #Sample (no strip: preserve significant spaces) 
     sample_io = ""
     if ex.tests_json and isinstance(ex.tests_json, dict):
         samples = (ex.tests_json or {}).get("sample", []) or []
@@ -113,13 +113,14 @@ async def _send_code_prompt(query_or_update, context, ex: Exercise):
 
     # Main text (all except <pre><code> blocks)
     enunciado = h(getattr(ex, "question", ""))
-    pista = getattr(ex, "hint", None)
-    pista_html = f"\n<b>Pista:</b> {h(pista)}" if pista else ""
+    # pista_html = ""
+    # if include_hint and getattr(ex, "hint", None):
+    #     pista_html = f"\n<b>Pista:</b> {h(ex.hint)}"
 
     text = (
         "<b>💻 Ejercicio de programación</b>\n\n"
         f"<b>Enunciado:</b> {enunciado}"
-        f"{pista_html}\n\n"
+        # f"{pista_html}\n\n"
         f"{sample_io}\n\n"
         f"<b>Límites:</b> {h(limits_str)}\n\n"
         "Envía tu solución en un bloque (triple comilla invertida) o pega tu código directamente:\n"
@@ -711,11 +712,13 @@ async def handle_callback(update, context):
         context.user_data["current_mode"] = mode
 
         if mode == "code":
-            # --- NEW: pick and present a code exercise now ---
+            # pick and present a code exercise now
             user_id = context.user_data.get("user_id")
             if not user_id:
                 await query.message.edit_text("⚠️ Debes registrarte primero con /start.")
                 return
+            
+            context.user_data["served_code_ids"] = set()
 
             with SessionLocal() as session:
                 ex = _pick_next_code_exercise(session, user_id, topic)
@@ -726,6 +729,8 @@ async def handle_callback(update, context):
                 context.user_data["current_exercise_id"] = ex.id
                 context.user_data["awaiting_code"] = True
                 context.user_data.pop("last_code", None)
+
+            context.user_data["served_code_ids"].add(ex.id)
 
             await _send_code_prompt(update, context, ex)
         else:
@@ -776,6 +781,11 @@ async def handle_callback(update, context):
         if context.user_data.get("current_mode") == "code":
             topic = context.user_data.get("current_topic")
             user_id = context.user_data.get("user_id")
+            served = context.user_data.setdefault("served_code_ids", set())
+            exclude = set(served)
+            cur_id = context.user_data.get("current_exercise_id")
+            if cur_id:
+                exclude.add(cur_id)
             if not topic or not user_id:
                 await query.message.reply_text("⚠️ Ocurrió un error. Usa /start.")
                 return
@@ -786,6 +796,7 @@ async def handle_callback(update, context):
                     return
                 context.user_data["current_exercise_id"] = ex.id
                 context.user_data["awaiting_code"] = True
+                served.add(ex.id) 
                 context.user_data.pop("last_code", None)
             await _send_code_prompt(update, context, ex)
         else:
@@ -1367,7 +1378,7 @@ def clear_practice_state(context):
     """Delete any traces of practice (tests or code)"""
     for k in ("current_topic", "current_mode", "current_exercise",
               "current_options", "awaiting_code", "current_exercise_id",
-              "last_code"):
+              "last_code", "served_code_ids"):
         context.user_data.pop(k, None)
 
 
