@@ -196,6 +196,7 @@ async def show_main_menu(update, context):
 
 # Function to start the bot and check user registration
 async def start(update, context):
+    clear_practice_state(context)
     telegram_id = update.effective_user.id
     username = update.effective_user.username
     first_name = update.effective_user.first_name
@@ -376,17 +377,24 @@ async def handle_callback(update, context):
     await query.answer()
     data = query.data
     if data == "search_start":
+        clear_practice_state(context)
+        context.user_data.pop("exam", None)
+        context.user_data.pop("awaiting_suggestion", None)
         return await search_entry(update, context)
 
     elif data in ("search_next", "search_prev"):
         return await handle_search_pagination(update, context)
     
     if data == "suggest":
+        clear_practice_state(context)
+        context.user_data.pop("search_active", None)
+        context.user_data["awaiting_suggestion"] = True
+
         # prevent practice/test state from hijacking the next text
         for k in ("current_topic", "current_mode", "current_exercise", "current_options", "awaiting_code"):
             context.user_data.pop(k, None)
 
-        context.user_data["awaiting_suggestion"] = True
+        # context.user_data["awaiting_suggestion"] = True
         await query.message.edit_text(
             "📝 *Envíame tu sugerencia ahora mismo*\n\n"
             "Puedes contarnos ideas, fallos, mejoras… (máx. 1000 caracteres).\n\n"
@@ -593,6 +601,7 @@ async def handle_callback(update, context):
 
 
     elif data == "learn":
+        clear_practice_state(context)
         buttons = [
             [InlineKeyboardButton(topic, callback_data=f"theory_{i}")]
             for i, topic in enumerate(cpp_topics)
@@ -815,6 +824,7 @@ async def handle_callback(update, context):
         await show_lesson_menu(update, context, topic_key)
 
     elif data == "main_menu":
+        clear_practice_state(context)
         await show_main_menu(update, context)
     
     elif data == "code_help":
@@ -1350,4 +1360,14 @@ async def help_cmd(update, context: ContextTypes.DEFAULT_TYPE):
 
 async def menu_cmd(update, context: ContextTypes.DEFAULT_TYPE):
     #await update.message.reply_text("👋", reply_markup=ReplyKeyboardRemove())
+    clear_practice_state(context)
     await show_main_menu(update, context)
+
+def clear_practice_state(context):
+    """Delete any traces of practice (tests or code)"""
+    for k in ("current_topic", "current_mode", "current_exercise",
+              "current_options", "awaiting_code", "current_exercise_id",
+              "last_code"):
+        context.user_data.pop(k, None)
+
+
