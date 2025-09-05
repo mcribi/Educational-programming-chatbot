@@ -6,8 +6,30 @@ from db.database import SessionLocal
 from db.models.attempt import Attempt
 from db.models.exercise import Exercise as ExerciseModel
 from handlers.code import code_help_text
-
+from html import escape as h
+from telegram import InlineKeyboardButton, InlineKeyboardMarkup
 import random
+import re
+
+def _render_question_html(q: str) -> str:
+    """
+    Returns the question ready for parse_mode=HTML:
+    - If it already contains <pre>/<code> (or other simple HTML tags), we do not escape it.
+    - If it has ```fences, we convert them to <pre><code>…</code></pre>.
+    - In all other cases, we escape it.
+    """
+    s = str(q or "")
+    if ("<pre" in s) or ("<code" in s) or ("</pre>" in s) or ("</code>" in s):
+        return s  #with HTML
+
+    m = re.search(r"```(?:\w+)?\s*\n([\s\S]*?)\n?```", s)
+    if m:
+        inner = h(m.group(1))
+        return s[:m.start()] + f"<pre><code>{inner}</code></pre>" + s[m.end():]
+
+    return h(s)
+
+
 
 async def start_practice(update: Update, context: ContextTypes.DEFAULT_TYPE):
     """Entry point after user picks topic + mode."""
@@ -63,33 +85,38 @@ async def send_question(update: Update, context: ContextTypes.DEFAULT_TYPE):
 
     exercises, weights = zip(*weighted_exercises)
     exercise = random.choices(exercises, weights=weights, k=1)[0]
-
-    # Store the chosen exercise (src object)
     context.user_data["current_exercise"] = exercise
 
-    # Also store the DB exercise id for /run and /submit
-    with SessionLocal() as session:
-        row = session.query(ExerciseModel.id).filter_by(question=exercise.question, type="code").first()
-        if row:
-            context.user_data["current_exercise_id"] = row[0]
+    # Store the chosen exercise (src object)
+    if mode == "code":
+        with SessionLocal() as session:
+            row = session.query(ExerciseModel.id).filter_by(question=exercise.question, type="code").first()
+            if row:
+                context.user_data["current_exercise_id"] = row[0]
 
     if mode == "test":
-        # TEST MODE UI
+        #test mode
         options = exercise.options.copy()
         random.shuffle(options)
         context.user_data["current_options"] = options
 
-        buttons = [[InlineKeyboardButton(opt, callback_data=f"resp_{options.index(opt)}")] for opt in options]
-        buttons.append([InlineKeyboardButton("⬅ Volver al menú de práctica", callback_data="back_to_mode")])
-
+        opts_block, kb = build_mcq_blocks(
+            options,
+            cb_prefix="resp_",
+            extra_rows=[[InlineKeyboardButton("⬅ Volver al menú de práctica", callback_data="back_to_mode")]]
+        )
         await context.bot.send_message(
             chat_id=update.effective_chat.id,
-            text=f"<b>Ejercicio tipo Test</b>\n\n{exercise.question}",
-            reply_markup=InlineKeyboardMarkup(buttons),
+            text=(
+                "<b>Ejercicio tipo Test</b>\n\n"
+                f"{_render_question_html(exercise.question)}\n\n"
+                f"{opts_block}"
+            ),
+            reply_markup=kb,
             parse_mode="HTML"
         )
     else:
-        # CODE MODE UI
+        #code mode
         # Optional stdin example
         stdin_hint = ""
         if hasattr(exercise, "stdin") and exercise.stdin:
@@ -136,21 +163,29 @@ async def send_question(update: Update, context: ContextTypes.DEFAULT_TYPE):
 
 
 async def handle_response(update: Update, context: ContextTypes.DEFAULT_TYPE):
-    """Handle multiple-choice answers (TEST MODE)."""
+    """Handle multiple-choice answers (TEST MODE por texto)."""
     user_id = context.user_data.get("user_id")
     exercise = context.user_data.get("current_exercise")
-    user_answer = update.message.text.strip()
+    options = context.user_data.get("current_options", [])  
+
+    if not exercise or not options:
+        await update.message.reply_text("⚠️ No hay una pregunta de test activa. Usa /start o vuelve a practicar.")
+        return
+
+    raw = (update.message.text or "").strip()  
+    idx = _letter_index_or_none(raw)
+    if idx is not None and 0 <= idx < len(options):
+        user_answer = options[idx]
+    else:
+        user_answer = raw
+
     is_correct = exercise.is_correct(user_answer)
 
-    # Persist attempt
+    # persist attempt
     with SessionLocal() as session:
         db_exercise = session.query(ExerciseModel).filter_by(question=exercise.question).first()
         if db_exercise:
-            session.add(Attempt(
-                user_id=user_id,
-                exercise_id=db_exercise.id,
-                is_correct=is_correct
-            ))
+            session.add(Attempt(user_id=user_id, exercise_id=db_exercise.id, is_correct=is_correct))
             session.commit()
 
     if is_correct:
@@ -161,7 +196,9 @@ async def handle_response(update: Update, context: ContextTypes.DEFAULT_TYPE):
             parse_mode="HTML"
         )
 
+    #next question
     await send_question(update, context)
+
 
 
 # code mode exercise
@@ -257,3 +294,39 @@ async def handle_code_submission(update: Update, context: ContextTypes.DEFAULT_T
 
     # Ask next one
     await send_question(update, context)
+
+def _letter_index_or_none(s: str) -> int | None:
+    s = (s or "").strip().upper()
+    if len(s) != 1:
+        return None
+    try:
+        return LETTERS_ES.index(s)
+    except ValueError:
+        return None
+
+
+LETTERS_ES = "ABCDEFGHIJKLMNÑOPQRSTUVWXYZ"
+
+
+
+def build_mcq_blocks(options: list[str], cb_prefix: str, extra_rows=None):
+    extra_rows = extra_rows or []
+
+    # complete text
+    lines = [f"{LETTERS_ES[i]}. {h(str(opt))}" for i, opt in enumerate(options)]
+    opts_block = "\n".join(lines)
+
+    #buttons
+    rows: list[list[InlineKeyboardButton]] = []
+    for i in range(len(options)):
+        if i % 2 == 0:
+            rows.append([])
+        rows[-1].append(
+            InlineKeyboardButton(LETTERS_ES[i], callback_data=f"{cb_prefix}{i}")
+        )
+
+    # extra rows
+    rows.extend(extra_rows)
+
+    return opts_block, InlineKeyboardMarkup(rows)
+

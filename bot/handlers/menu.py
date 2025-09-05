@@ -39,6 +39,8 @@ EXAM_POINTS_CODE_EACH = 1.0   # 5 points of programming
 
 GREETINGS = ["hola", "ola", "buenas", "hey", "holi", "hello", "saludos", "qué tal", "start"]
 
+LETTERS_ES = "ABCDEFGHIJKLMNÑOPQRSTUVWXYZ"
+
 # Helpers for code mode
 def _pick_next_code_exercise(session, user_id: int, topic_name: str, exclude_ids: set[int] | tuple[int, ...] = ()):
     topic = session.query(Topic).filter(Topic.name == topic_name).one_or_none()
@@ -1108,6 +1110,7 @@ async def _exam_send_current(update, context):
 
             # Parse options from whatever format is stored in DB
             opts, correct_idx, correct_text = _parse_test_options_from_exercise(ex)
+            
 
             # If there are no options, offer "continue" to skip it
             if not opts:
@@ -1135,30 +1138,59 @@ async def _exam_send_current(update, context):
             exam["current_test_correct_idx"] = correct_idx
             exam["current_test_correct_text"] = correct_text
 
-            # Build keyboard: one option per row
-            rows = [
-                [InlineKeyboardButton(opt, callback_data=f"exam_answer_{idx}")]
-                for idx, opt in enumerate(opts)
-            ]
-            rows.append([InlineKeyboardButton("❌ Cancelar examen", callback_data="exam_cancel")])
+            options_text, kb_letters = build_mcq_blocks(
+                options=opts,
+                cb_prefix="exam_answer_",
+                extra_rows=[[InlineKeyboardButton("❌ Cancelar examen", callback_data="exam_cancel")]]
+            )
 
-            # edit the current message in test phase
+            question_html = h(ex.question)
+            body = (
+                f"🧪 <b>Examen</b> — Test {i+1}/{len(exam['test_ids'])}\n\n"
+                f"{_render_question_html(ex.question)}"
+            )
+
+            # Edit and envy messages by the keyboard of letters
             if query and query.message:
                 await _safe_edit(
                     query.message,
-                    text=f"🧪 <b>Examen</b> — Test {i+1}/{len(exam['test_ids'])}\n\n<b>{ex.question}</b>",
+                    text=body,
                     parse_mode="HTML",
-                    reply_markup=InlineKeyboardMarkup(rows),
+                    reply_markup=kb_letters,
                 )
             else:
-                # Fallback: post new message if there is no message to edit
                 await context.bot.send_message(
                     chat_id=update.effective_chat.id,
-                    text=f"🧪 <b>Examen</b> — Test {i+1}/{len(exam['test_ids'])}\n\n<b>{ex.question}</b>",
+                    text=body,
                     parse_mode="HTML",
-                    reply_markup=InlineKeyboardMarkup(rows),
+                    reply_markup=kb_letters,
                 )
             return
+
+            # Build keyboard: one option per row
+            # rows = [
+            #     [InlineKeyboardButton(opt, callback_data=f"exam_answer_{idx}")]
+            #     for idx, opt in enumerate(opts)
+            # ]
+            # rows.append([InlineKeyboardButton("❌ Cancelar examen", callback_data="exam_cancel")])
+
+            # # edit the current message in test phase
+            # if query and query.message:
+            #     await _safe_edit(
+            #         query.message,
+            #         text=f"🧪 <b>Examen</b> — Test {i+1}/{len(exam['test_ids'])}\n\n<b>{ex.question}</b>",
+            #         parse_mode="HTML",
+            #         reply_markup=InlineKeyboardMarkup(rows),
+            #     )
+            # else:
+            #     # Fallback: post new message if there is no message to edit
+            #     await context.bot.send_message(
+            #         chat_id=update.effective_chat.id,
+            #         text=f"🧪 <b>Examen</b> — Test {i+1}/{len(exam['test_ids'])}\n\n<b>{ex.question}</b>",
+            #         parse_mode="HTML",
+            #         reply_markup=InlineKeyboardMarkup(rows),
+            #     )
+            # return
         else:
             # Switch to code phase
             exam["phase"] = "code"
@@ -1382,3 +1414,39 @@ def clear_practice_state(context):
         context.user_data.pop(k, None)
 
 
+def build_mcq_blocks(options: list[str], cb_prefix: str, extra_rows=None):
+    """
+    Returns (options_text, keyboard):
+      - options_text: "A. ...\nB. ...\n..."
+      - keyboard: shortcut keys A/B/C/D... (2 per row)
+    """
+    extra_rows = extra_rows or []
+
+    # complet text, without cut
+    lines = [f"{LETTERS_ES[i]}. {h(str(opt))}" for i, opt in enumerate(options)]
+    opts_block = "\n".join(lines)
+
+    #shorts buttons
+    rows: list[list[InlineKeyboardButton]] = []
+    for i in range(len(options)):
+        if i % 2 == 0:
+            rows.append([])
+        rows[-1].append(
+            InlineKeyboardButton(LETTERS_ES[i], callback_data=f"{cb_prefix}{i}")
+        )
+
+    # extra rows
+    rows.extend(extra_rows)
+
+    return opts_block, InlineKeyboardMarkup(rows)
+
+
+def _render_question_html(q: str) -> str:
+    s = str(q or "")
+    if ("<pre" in s) or ("<code" in s) or ("</pre>" in s) or ("</code>" in s):
+        return s
+    m = re.search(r"```(?:\w+)?\s*\n([\s\S]*?)\n?```", s)
+    if m:
+        inner = h(m.group(1))
+        return s[:m.start()] + f"<pre><code>{inner}</code></pre>" + s[m.end():]
+    return h(s)
